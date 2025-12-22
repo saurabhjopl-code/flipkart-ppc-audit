@@ -7,8 +7,7 @@ const HEADERS = {
   campaign: ["Campaign ID","AdGroup Name","Listing ID","Product Name","Advertised FSN ID","Date","order_id","AdGroup CPC","Expected ROI","Purchased FSN ID","Total Revenue (Rs.)","Direct Units Sold","Indirect Units Sold"]
 };
 
-/* ---------- CSV ---------- */
-
+/* ---------- Helpers ---------- */
 function parseCSV(text){
   const lines=text.trim().split(/\r?\n/);
   const headers=lines[0].split(",").map(h=>h.trim());
@@ -20,12 +19,10 @@ function parseCSV(text){
   });
   return {headers,rows};
 }
-
-function validateHeaders(a,e){ return e.every(h=>a.includes(h)); }
-function num(v){ return Number(v)||0; }
+function validateHeaders(a,e){return e.every(h=>a.includes(h));}
+function num(v){return Number(v)||0;}
 
 /* ---------- Upload ---------- */
-
 function bind(id,type,statusId){
   document.getElementById(id).addEventListener("change",e=>{
     const s=document.getElementById(statusId);
@@ -43,37 +40,90 @@ function bind(id,type,statusId){
     r.readAsText(e.target.files[0]);
   });
 }
-
 function checkReady(){
   const ok=["daily","fsn","placement","campaign"].every(k=>uploadedData[k]);
   document.getElementById("generateAudit").disabled=!ok;
   document.getElementById("validation-summary").classList.toggle("hidden",!ok);
 }
 
-/* ---------- AUDIT ---------- */
-
+/* ---------- AUDIT ENGINE (REAL FIX) ---------- */
 function runAudit(){
-  const flags=[];
-  uploadedData.fsn.forEach(r=>{
-    if(num(r["ROI"])<1.5) flags.push(`Low ROI: ${r["Product Name"]}`);
+
+  let totalSpend=0, totalRevenue=0, roiSum=0, roiCount=0;
+  let criticalIssues=[], fsnTable=[], placementTable=[];
+  let campaignOrders=0, campaignRevenue=0;
+  let score=100;
+
+  /* Daily Summary */
+  uploadedData.daily.forEach(r=>{
+    totalSpend+=num(r["Ad Spend"]);
+    totalRevenue+=num(r["Total Revenue (Rs.)"]);
+    roiSum+=num(r["ROI"]);
+    roiCount++;
   });
 
-  // 🔒 GUARANTEED SAVE
-  localStorage.setItem("rawData",JSON.stringify(uploadedData));
-  localStorage.setItem("audit",JSON.stringify({
-    flags,
-    generatedAt:new Date().toISOString()
-  }));
+  /* FSN Analysis */
+  uploadedData.fsn.forEach(r=>{
+    const roi=num(r["ROI"]);
+    let status="Good";
+    if(roi<1){status="Bad"; score-=3;}
+    else if(roi<1.5){status="Needs Fix"; score-=1;}
 
-  // 🔁 NAVIGATE AFTER SAVE
+    if(status!=="Good"){
+      criticalIssues.push(`Low ROI FSN: ${r["Product Name"]} (ROI ${roi})`);
+    }
+
+    fsnTable.push({
+      product:r["Product Name"],
+      views:r["Views"],
+      clicks:r["Clicks"],
+      revenue:r["Total Revenue (Rs.)"],
+      roi,
+      status
+    });
+  });
+
+  /* Placement Analysis */
+  uploadedData.placement.forEach(r=>{
+    const revenue=num(r["Direct Revenue"])+num(r["Indirect Revenue"]);
+    placementTable.push({
+      placement:r["Placement Type"],
+      spend:r["Ad Spend"],
+      revenue,
+      roi:r["ROI"]
+    });
+  });
+
+  /* Campaign Orders */
+  uploadedData.campaign.forEach(r=>{
+    campaignOrders+=num(r["Direct Units Sold"])+num(r["Indirect Units Sold"]);
+    campaignRevenue+=num(r["Total Revenue (Rs.)"]);
+  });
+
+  const auditResult={
+    score: Math.max(score,0),
+    summary:{
+      spend: totalSpend,
+      revenue: totalRevenue,
+      avgROI: roiCount? (roiSum/roiCount).toFixed(2):0
+    },
+    criticalIssues,
+    fsnTable,
+    placementTable,
+    campaignSummary:{
+      orders:campaignOrders,
+      revenue:campaignRevenue
+    }
+  };
+
+  localStorage.setItem("auditResult",JSON.stringify(auditResult));
   window.location.href="audit.html";
 }
 
 /* ---------- INIT ---------- */
-
 document.addEventListener("DOMContentLoaded",()=>{
 
-  /* Upload page */
+  /* Upload Page */
   if(document.getElementById("dailyFile")){
     bind("dailyFile","daily","dailyStatus");
     bind("fsnFile","fsn","fsnStatus");
@@ -82,61 +132,43 @@ document.addEventListener("DOMContentLoaded",()=>{
     document.getElementById("generateAudit").onclick=runAudit;
   }
 
-  /* Audit page */
+  /* Audit Page */
   if(document.getElementById("summary")){
-    const raw=localStorage.getItem("rawData");
-    const aud=localStorage.getItem("audit");
-
-    if(!raw||!aud){
-      document.getElementById("summarySection").style.display="none";
-      document.getElementById("noData").style.display="block";
+    const raw=localStorage.getItem("auditResult");
+    if(!raw){
+      document.body.innerHTML="<h2 style='padding:20px'>No audit data found</h2>";
       return;
     }
-
-    const data=JSON.parse(raw);
-    const audit=JSON.parse(aud);
-
-    let spend=0,rev=0,roiSum=0;
-    data.daily.forEach(r=>{
-      spend+=num(r["Ad Spend"]);
-      rev+=num(r["Total Revenue (Rs.)"]);
-      roiSum+=num(r["ROI"]);
-    });
+    const a=JSON.parse(raw);
 
     document.getElementById("summary").innerHTML=
-      `<p><b>Total Spend:</b> ₹${spend}</p>
-       <p><b>Total Revenue:</b> ₹${rev}</p>
-       <p><b>Avg ROI:</b> ${(roiSum/data.daily.length).toFixed(2)}</p>`;
+      `<p><b>Total Spend:</b> ₹${a.summary.spend}</p>
+       <p><b>Total Revenue:</b> ₹${a.summary.revenue}</p>
+       <p><b>Avg ROI:</b> ${a.summary.avgROI}</p>`;
 
-    audit.flags.forEach(f=>{
+    document.getElementById("score").textContent=a.score;
+
+    a.criticalIssues.forEach(i=>{
       const li=document.createElement("li");
-      li.textContent=f;
+      li.textContent=i;
       document.getElementById("redFlags").appendChild(li);
     });
 
-    data.fsn.forEach(r=>{
-      const roi=num(r["ROI"]);
-      const status=roi>=2?"Good":roi>=1?"Needs Fix":"Bad";
+    a.fsnTable.forEach(r=>{
       document.getElementById("fsnTable").innerHTML+=
-        `<tr><td>${r["Product Name"]}</td><td>${r["Views"]}</td><td>${r["Clicks"]}</td>
-        <td>${r["Total Revenue (Rs.)"]}</td><td>${roi}</td><td>${status}</td></tr>`;
+        `<tr><td>${r.product}</td><td>${r.views}</td><td>${r.clicks}</td>
+         <td>${r.revenue}</td><td>${r.roi}</td><td>${r.status}</td></tr>`;
     });
 
-    data.placement.forEach(r=>{
-      const rrev=num(r["Direct Revenue"])+num(r["Indirect Revenue"]);
+    a.placementTable.forEach(r=>{
       document.getElementById("placementTable").innerHTML+=
-        `<tr><td>${r["Placement Type"]}</td><td>${r["Ad Spend"]}</td><td>${rrev}</td><td>${r["ROI"]}</td></tr>`;
-    });
-
-    let orders=0,cRev=0;
-    data.campaign.forEach(r=>{
-      orders+=num(r["Direct Units Sold"])+num(r["Indirect Units Sold"]);
-      cRev+=num(r["Total Revenue (Rs.)"]);
+        `<tr><td>${r.placement}</td><td>${r.spend}</td>
+         <td>${r.revenue}</td><td>${r.roi}</td></tr>`;
     });
 
     document.getElementById("campaignSummary").innerHTML=
-      `<p><b>Total Orders:</b> ${orders}</p>
-       <p><b>Total Campaign Revenue:</b> ₹${cRev}</p>`;
+      `<p><b>Total Orders:</b> ${a.campaignSummary.orders}</p>
+       <p><b>Total Campaign Revenue:</b> ₹${a.campaignSummary.revenue}</p>`;
 
     document.getElementById("downloadPDF").onclick=()=>{
       html2pdf().from(document.getElementById("pdfContent"))
