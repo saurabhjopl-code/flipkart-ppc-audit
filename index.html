@@ -9,46 +9,47 @@
 <body>
 
 <header class="app-header">
-  <h1>Flipkart PPC Audit Tool</h1>
-  <p>Upload all 4 CSV reports to generate audit</p>
+  <img src="assets/logo.png" class="logo">
+  <div>
+    <h1>Flipkart PPC Audit Tool</h1>
+    <p>Upload all 4 reports to generate audit</p>
+  </div>
 </header>
 
 <main class="container">
 
   <section class="card">
-    <h2>Step 1: Upload Your Reports (CSV)</h2>
+    <h2>Upload Reports (CSV)</h2>
 
     <div class="upload-grid">
-
       <div class="upload-box">
         <label>Consolidated Daily Report</label>
-        <input type="file" id="dailyFile" accept=".csv">
-        <span class="status" id="dailyStatus">Not uploaded</span>
+        <input type="file" id="dailyFile">
+        <span id="dailyStatus" class="status">Not uploaded</span>
       </div>
 
       <div class="upload-box">
         <label>Consolidated FSN Report</label>
-        <input type="file" id="fsnFile" accept=".csv">
-        <span class="status" id="fsnStatus">Not uploaded</span>
+        <input type="file" id="fsnFile">
+        <span id="fsnStatus" class="status">Not uploaded</span>
       </div>
 
       <div class="upload-box">
         <label>Placement Performance Report</label>
-        <input type="file" id="placementFile" accept=".csv">
-        <span class="status" id="placementStatus">Not uploaded</span>
+        <input type="file" id="placementFile">
+        <span id="placementStatus" class="status">Not uploaded</span>
       </div>
 
       <div class="upload-box">
         <label>Campaign Order Report</label>
-        <input type="file" id="campaignFile" accept=".csv">
-        <span class="status" id="campaignStatus">Not uploaded</span>
+        <input type="file" id="campaignFile">
+        <span id="campaignStatus" class="status">Not uploaded</span>
       </div>
-
     </div>
   </section>
 
-  <section class="card hidden" id="validation-summary">
-    <strong>✔ All files uploaded & validated</strong>
+  <section id="validation-summary" class="card hidden">
+    ✔ All files validated successfully
   </section>
 
   <div class="cta">
