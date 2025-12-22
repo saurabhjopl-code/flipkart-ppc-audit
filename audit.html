@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PPC Audit Report</title>
-  <link rel="stylesheet" href="assets/css/style.css"/>
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
 
@@ -16,7 +16,10 @@
 <main class="container" id="pdfContent">
 
   <section class="card summary-grid">
-    <div class="kpi"><span>Audit Score</span><strong id="score">0</strong></div>
+    <div class="kpi">
+      <span>Audit Score</span>
+      <strong id="score">0</strong>
+    </div>
   </section>
 
   <section class="card">
@@ -24,19 +27,8 @@
     <ul id="redFlags"></ul>
   </section>
 
-  <section class="card">
-    <h2>ROI by FSN</h2>
-    <canvas id="roiChart"></canvas>
-  </section>
-
-  <section class="card">
-    <h2>Spend Leakage</h2>
-    <canvas id="leakageChart"></canvas>
-  </section>
-
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="js/app.js"></script>
 </body>
