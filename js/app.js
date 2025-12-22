@@ -5,44 +5,77 @@ const CONFIG = {
 
 const uploadedData = {};
 
-const HEADERS = {
-  daily: ["Date"],
-  fsn: ["FSN","PLA Spend","Sale through PLA","ROI"],
-  placement: ["Placement Type","PLA Spend","ROI"],
-  campaign: ["Campaign Name","Clicks","Orders","Spend"]
+/* ---------- HEADER DEFINITIONS (LOGICAL MATCHING) ---------- */
+
+const HEADER_MAP = {
+  daily: ["date"],
+  fsn: ["fsn", "pla spend", "sale through pla", "roi"],
+  placement: ["placement", "pla spend", "roi"],
+  campaign: ["campaign", "clicks", "orders", "spend"]
 };
 
+/* ---------- HELPERS ---------- */
+
+function normalizeHeader(h) {
+  return h
+    .toLowerCase()
+    .replace(/₹|\(|\)|%/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function parseCSV(text) {
-  const lines = text.trim().split("\n");
+  const lines = text.trim().split(/\r?\n/);
   const headers = lines[0].split(",").map(h => h.trim());
   const rows = lines.slice(1).map(line => {
     const values = line.split(",");
     const obj = {};
-    headers.forEach((h, i) => obj[h] = values[i]?.trim() || "");
+    headers.forEach((h, i) => (obj[h] = values[i]?.trim() || ""));
     return obj;
   });
   return { headers, rows };
 }
 
-function validateHeaders(actual, expected) {
-  return expected.every(h => actual.includes(h));
+function validateHeaders(actualHeaders, requiredKeys) {
+  const normalized = actualHeaders.map(normalizeHeader);
+  return requiredKeys.every(req =>
+    normalized.some(h => h.includes(req))
+  );
 }
 
-function toNumber(val) {
-  return Number(String(val).replace(/₹|%|,/g,"")) || 0;
+function toNumber(v) {
+  return Number(String(v).replace(/₹|%|,/g, "")) || 0;
 }
 
-function handleFileUpload(type, file) {
+/* ---------- FILE UPLOAD ---------- */
+
+function handleFileUpload(type, file, statusEl) {
   const reader = new FileReader();
+
   reader.onload = e => {
     const parsed = parseCSV(e.target.result);
-    if (!validateHeaders(parsed.headers, HEADERS[type])) {
-      alert(`Invalid headers in ${type} file`);
+
+    if (!validateHeaders(parsed.headers, HEADER_MAP[type])) {
+      statusEl.textContent = "Invalid header ✕";
+      statusEl.style.color = "red";
+      delete uploadedData[type];
+      checkAllFilesUploaded();
       return;
     }
+
     uploadedData[type] = parsed.rows;
+
+    statusEl.textContent = "Uploaded ✓";
+    statusEl.style.color = "green";
+
     checkAllFilesUploaded();
   };
+
+  reader.onerror = () => {
+    statusEl.textContent = "Read error ✕";
+    statusEl.style.color = "red";
+  };
+
   reader.readAsText(file);
 }
 
@@ -50,39 +83,60 @@ function bindFile(inputId, type, statusId) {
   const input = document.getElementById(inputId);
   const status = document.getElementById(statusId);
 
+  if (!input || !status) return;
+
   input.addEventListener("change", e => {
     const file = e.target.files[0];
-    status.textContent = "Uploading...";
-    handleFileUpload(type, file);
-    status.textContent = "Uploaded ✓";
-    status.style.color = "green";
+    if (!file) return;
+
+    status.textContent = "Validating...";
+    status.style.color = "#f59e0b";
+
+    handleFileUpload(type, file, status);
   });
 }
 
 function checkAllFilesUploaded() {
-  const ready = ["daily","fsn","placement","campaign"].every(k => uploadedData[k]);
+  const ready = ["daily", "fsn", "placement", "campaign"].every(
+    k => uploadedData[k]
+  );
+
+  const btn = document.getElementById("generateAudit");
+  const summary = document.getElementById("validation-summary");
+
   if (ready) {
-    document.getElementById("generateAudit").disabled = false;
-    document.getElementById("validation-summary").classList.remove("hidden");
+    btn.disabled = false;
+    summary.classList.remove("hidden");
+  } else {
+    btn.disabled = true;
+    summary.classList.add("hidden");
   }
 }
 
+/* ---------- AUDIT LOGIC ---------- */
+
 function runAudit() {
-  const audit = { redFlags: [], fsn: [], score: 100 };
+  const audit = {
+    redFlags: [],
+    score: 100
+  };
 
   uploadedData.fsn.forEach(r => {
-    const spend = toNumber(r["PLA Spend"]);
-    const roi = toNumber(r["ROI"]);
+    const spend = toNumber(r["PLA Spend"] || r["PLA Spend (₹)"]);
+    const roi = toNumber(r["ROI"] || r["ROI (%)"]);
+
     if (spend > 0 && roi < CONFIG.ROI_BREAK_EVEN) {
-      audit.redFlags.push(`FSN ${r.FSN} low ROI (${roi})`);
-      audit.fsn.push({ fsn: r.FSN, roi, spend });
+      audit.redFlags.push(`Low ROI FSN detected (ROI ${roi})`);
       audit.score -= 2;
     }
   });
 
   uploadedData.campaign.forEach(r => {
-    if (toNumber(r.Clicks) >= CONFIG.ZERO_ORDER_CLICK_THRESHOLD && toNumber(r.Orders) === 0) {
-      audit.redFlags.push(`Campaign ${r["Campaign Name"]} has clicks but no orders`);
+    if (
+      toNumber(r.Clicks) >= CONFIG.ZERO_ORDER_CLICK_THRESHOLD &&
+      toNumber(r.Orders) === 0
+    ) {
+      audit.redFlags.push("Campaign with clicks but zero orders");
       audit.score -= 3;
     }
   });
@@ -91,17 +145,22 @@ function runAudit() {
   window.location.href = "audit.html";
 }
 
+/* ---------- INIT ---------- */
+
 document.addEventListener("DOMContentLoaded", () => {
   if (document.getElementById("dailyFile")) {
-    bindFile("dailyFile","daily","dailyStatus");
-    bindFile("fsnFile","fsn","fsnStatus");
-    bindFile("placementFile","placement","placementStatus");
-    bindFile("campaignFile","campaign","campaignStatus");
+    bindFile("dailyFile", "daily", "dailyStatus");
+    bindFile("fsnFile", "fsn", "fsnStatus");
+    bindFile("placementFile", "placement", "placementStatus");
+    bindFile("campaignFile", "campaign", "campaignStatus");
+
     document.getElementById("generateAudit").onclick = runAudit;
   }
 
   if (document.getElementById("redFlags")) {
     const audit = JSON.parse(localStorage.getItem("audit"));
+    if (!audit) return;
+
     document.getElementById("score").textContent = audit.score;
 
     audit.redFlags.forEach(f => {
@@ -110,31 +169,10 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("redFlags").appendChild(li);
     });
 
-    new Chart(document.getElementById("roiChart"), {
-      type: "bar",
-      data: {
-        labels: audit.fsn.map(f => f.fsn),
-        datasets: [{
-          label: "ROI",
-          data: audit.fsn.map(f => f.roi),
-          backgroundColor: "#2563eb"
-        }]
-      }
-    });
-
-    new Chart(document.getElementById("leakageChart"), {
-      type: "pie",
-      data: {
-        labels: audit.fsn.map(f => f.fsn),
-        datasets: [{
-          data: audit.fsn.map(f => f.spend),
-          backgroundColor: "#dc2626"
-        }]
-      }
-    });
-
     document.getElementById("downloadPDF").onclick = () => {
-      html2pdf().from(document.getElementById("pdfContent")).save("Flipkart_PPC_Audit.pdf");
+      html2pdf()
+        .from(document.getElementById("pdfContent"))
+        .save("Flipkart_PPC_Audit_Report.pdf");
     };
   }
 });
