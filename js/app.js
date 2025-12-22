@@ -7,10 +7,12 @@ const HEADERS = {
   campaign: ["Campaign ID","AdGroup Name","Listing ID","Product Name","Advertised FSN ID","Date","order_id","AdGroup CPC","Expected ROI","Purchased FSN ID","Total Revenue (Rs.)","Direct Units Sold","Indirect Units Sold"]
 };
 
-function parseCSV(text) {
-  const lines = text.trim().split(/\r?\n/);
-  const headers = lines[0].split(",").map(h=>h.trim());
-  const rows = lines.slice(1).map(l=>{
+/* ---------- CSV ---------- */
+
+function parseCSV(text){
+  const lines=text.trim().split(/\r?\n/);
+  const headers=lines[0].split(",").map(h=>h.trim());
+  const rows=lines.slice(1).map(l=>{
     const v=l.split(",");
     const o={};
     headers.forEach((h,i)=>o[h]=v[i]?.trim()||"");
@@ -19,7 +21,10 @@ function parseCSV(text) {
   return {headers,rows};
 }
 
-function validateHeaders(a,e){return e.every(h=>a.includes(h));}
+function validateHeaders(a,e){ return e.every(h=>a.includes(h)); }
+function num(v){ return Number(v)||0; }
+
+/* ---------- Upload ---------- */
 
 function bind(id,type,statusId){
   document.getElementById(id).addEventListener("change",e=>{
@@ -45,19 +50,30 @@ function checkReady(){
   document.getElementById("validation-summary").classList.toggle("hidden",!ok);
 }
 
-function num(v){return Number(v)||0;}
+/* ---------- AUDIT ---------- */
 
 function runAudit(){
   const flags=[];
   uploadedData.fsn.forEach(r=>{
     if(num(r["ROI"])<1.5) flags.push(`Low ROI: ${r["Product Name"]}`);
   });
-  localStorage.setItem("audit",JSON.stringify({flags}));
+
+  // 🔒 GUARANTEED SAVE
   localStorage.setItem("rawData",JSON.stringify(uploadedData));
-  location.href="audit.html";
+  localStorage.setItem("audit",JSON.stringify({
+    flags,
+    generatedAt:new Date().toISOString()
+  }));
+
+  // 🔁 NAVIGATE AFTER SAVE
+  window.location.href="audit.html";
 }
 
+/* ---------- INIT ---------- */
+
 document.addEventListener("DOMContentLoaded",()=>{
+
+  /* Upload page */
   if(document.getElementById("dailyFile")){
     bind("dailyFile","daily","dailyStatus");
     bind("fsnFile","fsn","fsnStatus");
@@ -66,9 +82,19 @@ document.addEventListener("DOMContentLoaded",()=>{
     document.getElementById("generateAudit").onclick=runAudit;
   }
 
+  /* Audit page */
   if(document.getElementById("summary")){
-    const data=JSON.parse(localStorage.getItem("rawData"));
-    const audit=JSON.parse(localStorage.getItem("audit"));
+    const raw=localStorage.getItem("rawData");
+    const aud=localStorage.getItem("audit");
+
+    if(!raw||!aud){
+      document.getElementById("summarySection").style.display="none";
+      document.getElementById("noData").style.display="block";
+      return;
+    }
+
+    const data=JSON.parse(raw);
+    const audit=JSON.parse(aud);
 
     let spend=0,rev=0,roiSum=0;
     data.daily.forEach(r=>{
@@ -97,9 +123,9 @@ document.addEventListener("DOMContentLoaded",()=>{
     });
 
     data.placement.forEach(r=>{
-      const rev=num(r["Direct Revenue"])+num(r["Indirect Revenue"]);
+      const rrev=num(r["Direct Revenue"])+num(r["Indirect Revenue"]);
       document.getElementById("placementTable").innerHTML+=
-        `<tr><td>${r["Placement Type"]}</td><td>${r["Ad Spend"]}</td><td>${rev}</td><td>${r["ROI"]}</td></tr>`;
+        `<tr><td>${r["Placement Type"]}</td><td>${r["Ad Spend"]}</td><td>${rrev}</td><td>${r["ROI"]}</td></tr>`;
     });
 
     let orders=0,cRev=0;
@@ -107,6 +133,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       orders+=num(r["Direct Units Sold"])+num(r["Indirect Units Sold"]);
       cRev+=num(r["Total Revenue (Rs.)"]);
     });
+
     document.getElementById("campaignSummary").innerHTML=
       `<p><b>Total Orders:</b> ${orders}</p>
        <p><b>Total Campaign Revenue:</b> ₹${cRev}</p>`;
