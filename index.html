@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flipkart PPC Audit Tool</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+<header class="app-header">
+  <img src="assets/logo.png" alt="Logo" class="logo" />
+  <div>
+    <h1>Flipkart PPC Audit Tool</h1>
+    <p>Upload reports. Get actionable insights.</p>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- Upload Section -->
+  <section class="card">
+    <h2>Step 1: Upload Your Reports (CSV)</h2>
+
+    <div class="upload-grid">
+
+      <div class="upload-box">
+        <label>Consolidated Daily Report</label>
+        <input type="file" accept=".csv" />
+        <span class="status">Not uploaded</span>
+      </div>
+
+      <div class="upload-box">
+        <label>Consolidated FSN Report</label>
+        <input type="file" accept=".csv" />
+        <span class="status">Not uploaded</span>
+      </div>
+
+      <div class="upload-box">
+        <label>Placement Performance Report</label>
+        <input type="file" accept=".csv" />
+        <span class="status">Not uploaded</span>
+      </div>
+
+      <div class="upload-box">
+        <label>Campaign Order Report</label>
+        <input type="file" accept=".csv" />
+        <span class="status">Not uploaded</span>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Validation Summary -->
+  <section class="card hidden" id="validation-summary">
+    <h3>Validation Status</h3>
+    <ul>
+      <li>✔ All files uploaded</li>
+      <li>✔ Headers validated</li>
+      <li>✔ Date range detected</li>
+    </ul>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <button id="generateAudit" disabled>
+      Generate Audit Report →
+    </button>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <p>Built for performance marketers • GitHub Pages Ready</p>
+</footer>
+
+</body>
+</html>
