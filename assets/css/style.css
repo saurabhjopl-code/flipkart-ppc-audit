@@ -4,7 +4,6 @@ body {
   margin: 0;
 }
 
-.app-header,
 .audit-header {
   display: flex;
   align-items: center;
@@ -15,7 +14,7 @@ body {
 }
 
 .logo {
-  height: 44px;
+  height: 42px;
 }
 
 .container {
@@ -29,40 +28,22 @@ body {
   padding: 20px;
   border-radius: 10px;
   border: 1px solid #e5e7eb;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
-.upload-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px,1fr));
-  gap: 16px;
+.score-card {
+  border-left: 6px solid #2563eb;
 }
 
-.upload-box {
-  border: 1px dashed #cbd5e1;
-  padding: 14px;
-  border-radius: 6px;
+.audit-score {
+  font-size: 42px;
+  font-weight: 700;
+  margin-top: 8px;
 }
 
-.status {
-  font-size: 0.85rem;
-  margin-top: 6px;
-  display: block;
-}
-
-.hidden { display: none; }
-
-button {
-  background: #2563eb;
-  color: white;
-  padding: 12px 20px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-}
-
-button:disabled {
-  background: #94a3b8;
+.summary-table td {
+  padding: 10px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 table {
@@ -71,11 +52,15 @@ table {
 }
 
 th, td {
-  border: 1px solid #e5e7eb;
   padding: 10px;
+  border: 1px solid #e5e7eb;
   text-align: left;
 }
 
 th {
   background: #f1f5f9;
 }
+
+.status-good { color: #15803d; font-weight: 600; }
+.status-fix  { color: #b45309; font-weight: 600; }
+.status-bad  { color: #b91c1c; font-weight: 700; }
