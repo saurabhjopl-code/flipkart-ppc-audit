@@ -1,27 +1,17 @@
-<script src="js/app.js"></script>
 const CONFIG = {
   ROI_BREAK_EVEN: 1.5,
-  HIGH_RETURN_PCT: 20,
-  ZERO_ORDER_CLICK_THRESHOLD: 50,
-  HIGH_DEPENDENCY_PCT: 65
+  ZERO_ORDER_CLICK_THRESHOLD: 50
 };
+
+const uploadedData = {};
+
 const HEADERS = {
-  daily: [
-    "Date", "Gross Units", "GMV", "Return (35%)", "Net",
-    "PLA Spend", "Sale through PLA", "ROI", "RETURN %"
-  ],
-  fsn: [
-    "FSN", "PLA Spend", "Sale through PLA", "GMV",
-    "PLA Units Sold", "ROI", "PLA Unit Sold %"
-  ],
-  placement: [
-    "Placement Type", "PLA Spend", "Sale through PLA",
-    "Units Sold", "ROI"
-  ],
-  campaign: [
-    "Campaign Name", "Clicks", "Orders", "Spend"
-  ]
+  daily: ["Date"],
+  fsn: ["FSN","PLA Spend","Sale through PLA","ROI"],
+  placement: ["Placement Type","PLA Spend","ROI"],
+  campaign: ["Campaign Name","Clicks","Orders","Spend"]
 };
+
 function parseCSV(text) {
   const lines = text.trim().split("\n");
   const headers = lines[0].split(",").map(h => h.trim());
@@ -33,138 +23,118 @@ function parseCSV(text) {
   });
   return { headers, rows };
 }
+
 function validateHeaders(actual, expected) {
   return expected.every(h => actual.includes(h));
 }
+
 function toNumber(val) {
-  if (!val) return 0;
-  return Number(val.replace(/₹|%|,/g, "").trim()) || 0;
+  return Number(String(val).replace(/₹|%|,/g,"")) || 0;
 }
-const uploadedData = {};
 
 function handleFileUpload(type, file) {
   const reader = new FileReader();
   reader.onload = e => {
     const parsed = parseCSV(e.target.result);
-
     if (!validateHeaders(parsed.headers, HEADERS[type])) {
-      alert(`Invalid headers in ${type} report`);
+      alert(`Invalid headers in ${type} file`);
       return;
     }
-
     uploadedData[type] = parsed.rows;
     checkAllFilesUploaded();
   };
   reader.readAsText(file);
 }
-function checkAllFilesUploaded() {
-  const ready = ["daily", "fsn", "placement", "campaign"]
-    .every(k => uploadedData[k]);
 
+function bindFile(inputId, type, statusId) {
+  const input = document.getElementById(inputId);
+  const status = document.getElementById(statusId);
+
+  input.addEventListener("change", e => {
+    const file = e.target.files[0];
+    status.textContent = "Uploading...";
+    handleFileUpload(type, file);
+    status.textContent = "Uploaded ✓";
+    status.style.color = "green";
+  });
+}
+
+function checkAllFilesUploaded() {
+  const ready = ["daily","fsn","placement","campaign"].every(k => uploadedData[k]);
   if (ready) {
     document.getElementById("generateAudit").disabled = false;
     document.getElementById("validation-summary").classList.remove("hidden");
   }
 }
-function runAudit(data) {
-  const audit = {
-    summary: {},
-    redFlags: [],
-    fsnActions: [],
-    placementActions: [],
-    campaignIssues: [],
-    score: 100
-  };
 
-  auditSpendLeakage(data, audit);
-  auditFSN(data, audit);
-  auditPlacement(data, audit);
-  auditCampaigns(data, audit);
+function runAudit() {
+  const audit = { redFlags: [], fsn: [], score: 100 };
 
-  return audit;
-}
-function auditSpendLeakage(data, audit) {
-  data.fsn.forEach(row => {
-    const spend = toNumber(row["PLA Spend"]);
-    const revenue = toNumber(row["Sale through PLA"]);
-
-    if (spend > 0 && revenue === 0) {
-      audit.redFlags.push(
-        `₹${spend.toLocaleString()} spent on FSN ${row.FSN} with zero sales`
-      );
+  uploadedData.fsn.forEach(r => {
+    const spend = toNumber(r["PLA Spend"]);
+    const roi = toNumber(r["ROI"]);
+    if (spend > 0 && roi < CONFIG.ROI_BREAK_EVEN) {
+      audit.redFlags.push(`FSN ${r.FSN} low ROI (${roi})`);
+      audit.fsn.push({ fsn: r.FSN, roi, spend });
       audit.score -= 2;
     }
   });
-}
-function auditFSN(data, audit) {
-  data.fsn.forEach(row => {
-    const roi = toNumber(row["ROI"]);
-    const spend = toNumber(row["PLA Spend"]);
 
-    if (spend === 0) return;
-
-    let action = "OPTIMIZE";
-
-    if (roi < CONFIG.ROI_BREAK_EVEN) action = "PAUSE";
-    if (roi >= 3) action = "SCALE";
-
-    audit.fsnActions.push({
-      fsn: row.FSN,
-      spend,
-      revenue: toNumber(row["Sale through PLA"]),
-      roi,
-      action
-    });
-  });
-}
-function auditPlacement(data, audit) {
-  data.placement.forEach(row => {
-    const roi = toNumber(row["ROI"]);
-    let rec = "OPTIMIZE";
-
-    if (roi < CONFIG.ROI_BREAK_EVEN) rec = "CUT";
-    if (roi >= 3) rec = "SCALE";
-
-    audit.placementActions.push({
-      placement: row["Placement Type"],
-      roi,
-      recommendation: rec
-    });
-  });
-}
-function auditCampaigns(data, audit) {
-  data.campaign.forEach(row => {
-    const clicks = toNumber(row.Clicks);
-    const orders = toNumber(row.Orders);
-    const spend = toNumber(row.Spend);
-
-    if (clicks >= CONFIG.ZERO_ORDER_CLICK_THRESHOLD && orders === 0) {
-      audit.campaignIssues.push(
-        `Campaign ${row["Campaign Name"]} spent ₹${spend} with ${clicks} clicks and zero orders`
-      );
+  uploadedData.campaign.forEach(r => {
+    if (toNumber(r.Clicks) >= CONFIG.ZERO_ORDER_CLICK_THRESHOLD && toNumber(r.Orders) === 0) {
+      audit.redFlags.push(`Campaign ${r["Campaign Name"]} has clicks but no orders`);
       audit.score -= 3;
     }
   });
-}
-function saveAudit(audit) {
-  localStorage.setItem("ppcAudit", JSON.stringify(audit));
+
+  localStorage.setItem("audit", JSON.stringify(audit));
   window.location.href = "audit.html";
 }
 
-function loadAudit() {
-  return JSON.parse(localStorage.getItem("ppcAudit"));
-}
 document.addEventListener("DOMContentLoaded", () => {
-  const audit = loadAudit();
-  if (!audit) return;
+  if (document.getElementById("dailyFile")) {
+    bindFile("dailyFile","daily","dailyStatus");
+    bindFile("fsnFile","fsn","fsnStatus");
+    bindFile("placementFile","placement","placementStatus");
+    bindFile("campaignFile","campaign","campaignStatus");
+    document.getElementById("generateAudit").onclick = runAudit;
+  }
 
-  document.querySelector(".audit-score").textContent =
-    `Audit Score: ${audit.score}`;
+  if (document.getElementById("redFlags")) {
+    const audit = JSON.parse(localStorage.getItem("audit"));
+    document.getElementById("score").textContent = audit.score;
 
-  const ul = document.querySelector(".red-flags");
-  audit.redFlags.forEach(f => {
-    const li = document.createElement("li");
-    li.textContent = f;
-    ul.appendChild(li);
-  });
+    audit.redFlags.forEach(f => {
+      const li = document.createElement("li");
+      li.textContent = f;
+      document.getElementById("redFlags").appendChild(li);
+    });
+
+    new Chart(document.getElementById("roiChart"), {
+      type: "bar",
+      data: {
+        labels: audit.fsn.map(f => f.fsn),
+        datasets: [{
+          label: "ROI",
+          data: audit.fsn.map(f => f.roi),
+          backgroundColor: "#2563eb"
+        }]
+      }
+    });
+
+    new Chart(document.getElementById("leakageChart"), {
+      type: "pie",
+      data: {
+        labels: audit.fsn.map(f => f.fsn),
+        datasets: [{
+          data: audit.fsn.map(f => f.spend),
+          backgroundColor: "#dc2626"
+        }]
+      }
+    });
+
+    document.getElementById("downloadPDF").onclick = () => {
+      html2pdf().from(document.getElementById("pdfContent")).save("Flipkart_PPC_Audit.pdf");
+    };
+  }
 });
