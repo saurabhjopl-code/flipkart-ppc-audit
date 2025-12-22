@@ -1,177 +1,106 @@
-const CONFIG = {
-  ROI_BREAK_EVEN: 1.5,
-  ZERO_ORDER_CLICK_THRESHOLD: 50
-};
-
 const uploadedData = {};
 
-/* ---------- HEADER DEFINITIONS (LOGICAL MATCHING) ---------- */
-
-const HEADER_MAP = {
-  daily: ["date"],
-  fsn: ["fsn", "pla spend", "sale through pla", "roi"],
-  placement: ["placement", "pla spend", "roi"],
-  campaign: ["campaign", "clicks", "orders", "spend"]
+const HEADERS = {
+  daily: [
+    "Campaign ID","Campaign Name","Date","Ad Spend","Views",
+    "Clicks","Total converted units","Total Revenue (Rs.)","ROI"
+  ],
+  fsn: [
+    "Campaign ID","Campaign Name","AdGroup ID","AdGroup Name",
+    "Sku Id","Product Name","Views","Clicks",
+    "Direct Units Sold","Indirect Units Sold",
+    "Total Revenue (Rs.)","Conversion Rate","ROI"
+  ],
+  placement: [
+    "Campaign ID","Campaign Name","AdGroup Name","Placement Type",
+    "Views","Clicks","Click Through Rate in %",
+    "Average CPC","Conversion Rate","Ad Spend",
+    "Direct Units Sold","Indirect Units Sold",
+    "Direct Revenue","Indirect Revenue","ROI"
+  ],
+  campaign: [
+    "Campaign ID","AdGroup Name","Listing ID","Product Name",
+    "Advertised FSN ID","Date","order_id",
+    "AdGroup CPC","Expected ROI","Purchased FSN ID",
+    "Total Revenue (Rs.)","Direct Units Sold","Indirect Units Sold"
+  ]
 };
-
-/* ---------- HELPERS ---------- */
-
-function normalizeHeader(h) {
-  return h
-    .toLowerCase()
-    .replace(/₹|\(|\)|%/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 function parseCSV(text) {
   const lines = text.trim().split(/\r?\n/);
   const headers = lines[0].split(",").map(h => h.trim());
-  const rows = lines.slice(1).map(line => {
-    const values = line.split(",");
+  const rows = lines.slice(1).map(l => {
+    const vals = l.split(",");
     const obj = {};
-    headers.forEach((h, i) => (obj[h] = values[i]?.trim() || ""));
+    headers.forEach((h,i)=>obj[h]=vals[i]?.trim()||"");
     return obj;
   });
   return { headers, rows };
 }
 
-function validateHeaders(actualHeaders, requiredKeys) {
-  const normalized = actualHeaders.map(normalizeHeader);
-  return requiredKeys.every(req =>
-    normalized.some(h => h.includes(req))
-  );
+function validateHeaders(actual, expected) {
+  return expected.every(h => actual.includes(h));
 }
 
-function toNumber(v) {
-  return Number(String(v).replace(/₹|%|,/g, "")) || 0;
-}
-
-/* ---------- FILE UPLOAD ---------- */
-
-function handleFileUpload(type, file, statusEl) {
+function handleFile(type, file, status) {
   const reader = new FileReader();
-
   reader.onload = e => {
     const parsed = parseCSV(e.target.result);
-
-    if (!validateHeaders(parsed.headers, HEADER_MAP[type])) {
-      statusEl.textContent = "Invalid header ✕";
-      statusEl.style.color = "red";
-      delete uploadedData[type];
-      checkAllFilesUploaded();
+    if (!validateHeaders(parsed.headers, HEADERS[type])) {
+      status.textContent = "Invalid header ✕";
+      status.style.color = "red";
       return;
     }
-
     uploadedData[type] = parsed.rows;
-
-    statusEl.textContent = "Uploaded ✓";
-    statusEl.style.color = "green";
-
-    checkAllFilesUploaded();
+    status.textContent = "Uploaded ✓";
+    status.style.color = "green";
+    checkReady();
   };
-
-  reader.onerror = () => {
-    statusEl.textContent = "Read error ✕";
-    statusEl.style.color = "red";
-  };
-
   reader.readAsText(file);
 }
 
-function bindFile(inputId, type, statusId) {
-  const input = document.getElementById(inputId);
-  const status = document.getElementById(statusId);
-
-  if (!input || !status) return;
-
-  input.addEventListener("change", e => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    status.textContent = "Validating...";
-    status.style.color = "#f59e0b";
-
-    handleFileUpload(type, file, status);
+function bind(id,type,statusId){
+  document.getElementById(id).addEventListener("change",e=>{
+    const s=document.getElementById(statusId);
+    s.textContent="Validating...";
+    handleFile(type,e.target.files[0],s);
   });
 }
 
-function checkAllFilesUploaded() {
-  const ready = ["daily", "fsn", "placement", "campaign"].every(
-    k => uploadedData[k]
-  );
-
-  const btn = document.getElementById("generateAudit");
-  const summary = document.getElementById("validation-summary");
-
-  if (ready) {
-    btn.disabled = false;
-    summary.classList.remove("hidden");
-  } else {
-    btn.disabled = true;
-    summary.classList.add("hidden");
-  }
+function checkReady(){
+  const ok=["daily","fsn","placement","campaign"].every(k=>uploadedData[k]);
+  document.getElementById("generateAudit").disabled=!ok;
+  document.getElementById("validation-summary").classList.toggle("hidden",!ok);
 }
 
-/* ---------- AUDIT LOGIC ---------- */
-
-function runAudit() {
-  const audit = {
-    redFlags: [],
-    score: 100
-  };
-
-  uploadedData.fsn.forEach(r => {
-    const spend = toNumber(r["PLA Spend"] || r["PLA Spend (₹)"]);
-    const roi = toNumber(r["ROI"] || r["ROI (%)"]);
-
-    if (spend > 0 && roi < CONFIG.ROI_BREAK_EVEN) {
-      audit.redFlags.push(`Low ROI FSN detected (ROI ${roi})`);
-      audit.score -= 2;
-    }
+function runAudit(){
+  const flags=[];
+  uploadedData.fsn.forEach(r=>{
+    if(+r["ROI"]<1.5) flags.push(`Low ROI: ${r["Product Name"]}`);
   });
-
-  uploadedData.campaign.forEach(r => {
-    if (
-      toNumber(r.Clicks) >= CONFIG.ZERO_ORDER_CLICK_THRESHOLD &&
-      toNumber(r.Orders) === 0
-    ) {
-      audit.redFlags.push("Campaign with clicks but zero orders");
-      audit.score -= 3;
-    }
-  });
-
-  localStorage.setItem("audit", JSON.stringify(audit));
-  window.location.href = "audit.html";
+  localStorage.setItem("audit",JSON.stringify({flags,score:100-flags.length*2}));
+  location.href="audit.html";
 }
 
-/* ---------- INIT ---------- */
-
-document.addEventListener("DOMContentLoaded", () => {
-  if (document.getElementById("dailyFile")) {
-    bindFile("dailyFile", "daily", "dailyStatus");
-    bindFile("fsnFile", "fsn", "fsnStatus");
-    bindFile("placementFile", "placement", "placementStatus");
-    bindFile("campaignFile", "campaign", "campaignStatus");
-
-    document.getElementById("generateAudit").onclick = runAudit;
+document.addEventListener("DOMContentLoaded",()=>{
+  if(document.getElementById("dailyFile")){
+    bind("dailyFile","daily","dailyStatus");
+    bind("fsnFile","fsn","fsnStatus");
+    bind("placementFile","placement","placementStatus");
+    bind("campaignFile","campaign","campaignStatus");
+    document.getElementById("generateAudit").onclick=runAudit;
   }
 
-  if (document.getElementById("redFlags")) {
-    const audit = JSON.parse(localStorage.getItem("audit"));
-    if (!audit) return;
-
-    document.getElementById("score").textContent = audit.score;
-
-    audit.redFlags.forEach(f => {
-      const li = document.createElement("li");
-      li.textContent = f;
+  if(document.getElementById("redFlags")){
+    const a=JSON.parse(localStorage.getItem("audit"));
+    document.getElementById("score").textContent=a.score;
+    a.flags.forEach(f=>{
+      const li=document.createElement("li");
+      li.textContent=f;
       document.getElementById("redFlags").appendChild(li);
     });
-
-    document.getElementById("downloadPDF").onclick = () => {
-      html2pdf()
-        .from(document.getElementById("pdfContent"))
+    document.getElementById("downloadPDF").onclick=()=>{
+      html2pdf().from(document.getElementById("pdfContent"))
         .save("Flipkart_PPC_Audit_Report.pdf");
     };
   }
