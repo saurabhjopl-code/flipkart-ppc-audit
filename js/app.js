@@ -1,69 +1,41 @@
 const uploadedData = {};
 
 const HEADERS = {
-  daily: [
-    "Campaign ID","Campaign Name","Date","Ad Spend","Views",
-    "Clicks","Total converted units","Total Revenue (Rs.)","ROI"
-  ],
-  fsn: [
-    "Campaign ID","Campaign Name","AdGroup ID","AdGroup Name",
-    "Sku Id","Product Name","Views","Clicks",
-    "Direct Units Sold","Indirect Units Sold",
-    "Total Revenue (Rs.)","Conversion Rate","ROI"
-  ],
-  placement: [
-    "Campaign ID","Campaign Name","AdGroup Name","Placement Type",
-    "Views","Clicks","Click Through Rate in %",
-    "Average CPC","Conversion Rate","Ad Spend",
-    "Direct Units Sold","Indirect Units Sold",
-    "Direct Revenue","Indirect Revenue","ROI"
-  ],
-  campaign: [
-    "Campaign ID","AdGroup Name","Listing ID","Product Name",
-    "Advertised FSN ID","Date","order_id",
-    "AdGroup CPC","Expected ROI","Purchased FSN ID",
-    "Total Revenue (Rs.)","Direct Units Sold","Indirect Units Sold"
-  ]
+  daily: ["Campaign ID","Campaign Name","Date","Ad Spend","Views","Clicks","Total converted units","Total Revenue (Rs.)","ROI"],
+  fsn: ["Campaign ID","Campaign Name","AdGroup ID","AdGroup Name","Sku Id","Product Name","Views","Clicks","Direct Units Sold","Indirect Units Sold","Total Revenue (Rs.)","Conversion Rate","ROI"],
+  placement: ["Campaign ID","Campaign Name","AdGroup Name","Placement Type","Views","Clicks","Click Through Rate in %","Average CPC","Conversion Rate","Ad Spend","Direct Units Sold","Indirect Units Sold","Direct Revenue","Indirect Revenue","ROI"],
+  campaign: ["Campaign ID","AdGroup Name","Listing ID","Product Name","Advertised FSN ID","Date","order_id","AdGroup CPC","Expected ROI","Purchased FSN ID","Total Revenue (Rs.)","Direct Units Sold","Indirect Units Sold"]
 };
 
 function parseCSV(text) {
   const lines = text.trim().split(/\r?\n/);
-  const headers = lines[0].split(",").map(h => h.trim());
-  const rows = lines.slice(1).map(l => {
-    const vals = l.split(",");
-    const obj = {};
-    headers.forEach((h,i)=>obj[h]=vals[i]?.trim()||"");
-    return obj;
+  const headers = lines[0].split(",").map(h=>h.trim());
+  const rows = lines.slice(1).map(l=>{
+    const v=l.split(",");
+    const o={};
+    headers.forEach((h,i)=>o[h]=v[i]?.trim()||"");
+    return o;
   });
-  return { headers, rows };
+  return {headers,rows};
 }
 
-function validateHeaders(actual, expected) {
-  return expected.every(h => actual.includes(h));
-}
-
-function handleFile(type, file, status) {
-  const reader = new FileReader();
-  reader.onload = e => {
-    const parsed = parseCSV(e.target.result);
-    if (!validateHeaders(parsed.headers, HEADERS[type])) {
-      status.textContent = "Invalid header ✕";
-      status.style.color = "red";
-      return;
-    }
-    uploadedData[type] = parsed.rows;
-    status.textContent = "Uploaded ✓";
-    status.style.color = "green";
-    checkReady();
-  };
-  reader.readAsText(file);
-}
+function validateHeaders(a,e){return e.every(h=>a.includes(h));}
 
 function bind(id,type,statusId){
   document.getElementById(id).addEventListener("change",e=>{
     const s=document.getElementById(statusId);
+    const r=new FileReader();
     s.textContent="Validating...";
-    handleFile(type,e.target.files[0],s);
+    r.onload=x=>{
+      const p=parseCSV(x.target.result);
+      if(!validateHeaders(p.headers,HEADERS[type])){
+        s.textContent="Invalid header ✕"; s.style.color="red"; return;
+      }
+      uploadedData[type]=p.rows;
+      s.textContent="Uploaded ✓"; s.style.color="green";
+      checkReady();
+    };
+    r.readAsText(e.target.files[0]);
   });
 }
 
@@ -73,12 +45,15 @@ function checkReady(){
   document.getElementById("validation-summary").classList.toggle("hidden",!ok);
 }
 
+function num(v){return Number(v)||0;}
+
 function runAudit(){
   const flags=[];
   uploadedData.fsn.forEach(r=>{
-    if(+r["ROI"]<1.5) flags.push(`Low ROI: ${r["Product Name"]}`);
+    if(num(r["ROI"])<1.5) flags.push(`Low ROI: ${r["Product Name"]}`);
   });
-  localStorage.setItem("audit",JSON.stringify({flags,score:100-flags.length*2}));
+  localStorage.setItem("audit",JSON.stringify({flags}));
+  localStorage.setItem("rawData",JSON.stringify(uploadedData));
   location.href="audit.html";
 }
 
@@ -91,14 +66,51 @@ document.addEventListener("DOMContentLoaded",()=>{
     document.getElementById("generateAudit").onclick=runAudit;
   }
 
-  if(document.getElementById("redFlags")){
-    const a=JSON.parse(localStorage.getItem("audit"));
-    document.getElementById("score").textContent=a.score;
-    a.flags.forEach(f=>{
+  if(document.getElementById("summary")){
+    const data=JSON.parse(localStorage.getItem("rawData"));
+    const audit=JSON.parse(localStorage.getItem("audit"));
+
+    let spend=0,rev=0,roiSum=0;
+    data.daily.forEach(r=>{
+      spend+=num(r["Ad Spend"]);
+      rev+=num(r["Total Revenue (Rs.)"]);
+      roiSum+=num(r["ROI"]);
+    });
+
+    document.getElementById("summary").innerHTML=
+      `<p><b>Total Spend:</b> ₹${spend}</p>
+       <p><b>Total Revenue:</b> ₹${rev}</p>
+       <p><b>Avg ROI:</b> ${(roiSum/data.daily.length).toFixed(2)}</p>`;
+
+    audit.flags.forEach(f=>{
       const li=document.createElement("li");
       li.textContent=f;
       document.getElementById("redFlags").appendChild(li);
     });
+
+    data.fsn.forEach(r=>{
+      const roi=num(r["ROI"]);
+      const status=roi>=2?"Good":roi>=1?"Needs Fix":"Bad";
+      document.getElementById("fsnTable").innerHTML+=
+        `<tr><td>${r["Product Name"]}</td><td>${r["Views"]}</td><td>${r["Clicks"]}</td>
+        <td>${r["Total Revenue (Rs.)"]}</td><td>${roi}</td><td>${status}</td></tr>`;
+    });
+
+    data.placement.forEach(r=>{
+      const rev=num(r["Direct Revenue"])+num(r["Indirect Revenue"]);
+      document.getElementById("placementTable").innerHTML+=
+        `<tr><td>${r["Placement Type"]}</td><td>${r["Ad Spend"]}</td><td>${rev}</td><td>${r["ROI"]}</td></tr>`;
+    });
+
+    let orders=0,cRev=0;
+    data.campaign.forEach(r=>{
+      orders+=num(r["Direct Units Sold"])+num(r["Indirect Units Sold"]);
+      cRev+=num(r["Total Revenue (Rs.)"]);
+    });
+    document.getElementById("campaignSummary").innerHTML=
+      `<p><b>Total Orders:</b> ${orders}</p>
+       <p><b>Total Campaign Revenue:</b> ₹${cRev}</p>`;
+
     document.getElementById("downloadPDF").onclick=()=>{
       html2pdf().from(document.getElementById("pdfContent"))
         .save("Flipkart_PPC_Audit_Report.pdf");
