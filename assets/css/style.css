@@ -1,11 +1,12 @@
 body {
-  font-family: Arial, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   background: #f8fafc;
   margin: 0;
 }
 
-.app-header, .audit-header {
-  background: white;
+.app-header,
+.audit-header {
+  background: #ffffff;
   padding: 16px;
   border-bottom: 1px solid #e5e7eb;
 }
@@ -17,7 +18,7 @@ body {
 }
 
 .card {
-  background: white;
+  background: #ffffff;
   padding: 20px;
   margin-bottom: 20px;
   border-radius: 8px;
@@ -26,7 +27,7 @@ body {
 
 .upload-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px,1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
 }
 
@@ -42,12 +43,14 @@ body {
   font-size: 0.85rem;
 }
 
-.hidden { display: none; }
+.hidden {
+  display: none;
+}
 
 button {
   padding: 12px 20px;
   background: #2563eb;
-  color: white;
+  color: #ffffff;
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -59,7 +62,7 @@ button:disabled {
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
 .kpi {
