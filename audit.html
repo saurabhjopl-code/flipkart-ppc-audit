@@ -1,41 +1,43 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>PPC Audit Report</title>
+  <title>Flipkart PPC Audit Report</title>
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
 
 <header class="audit-header">
   <img src="assets/logo.png" class="logo">
-  <h2>Flipkart PPC Audit Report</h2>
-  <button id="downloadPDF">Download PDF</button>
+  <div>
+    <h2>Flipkart PPC Audit Report</h2>
+    <small>FSN-level Performance Audit</small>
+  </div>
 </header>
 
 <main class="container" id="pdfContent">
 
-  <section class="card" id="noData" style="display:none">
-    <h2>No Audit Data Found</h2>
-    <p>Please go back and generate the audit again.</p>
+  <!-- AUDIT SCORE -->
+  <section class="card score-card">
+    <h2>Audit Score</h2>
+    <div id="auditScore" class="audit-score">0</div>
   </section>
 
-  <section class="card" id="summarySection">
-    <h2>Executive Summary</h2>
-    <div id="summary"></div>
-  </section>
-
+  <!-- SUMMARY TABLE -->
   <section class="card">
-    <h2>Critical Red Flags</h2>
-    <ul id="redFlags"></ul>
+    <h2>Summary</h2>
+    <table class="summary-table">
+      <tbody id="summaryTable"></tbody>
+    </table>
   </section>
 
+  <!-- FSN PERFORMANCE -->
   <section class="card">
     <h2>FSN / Product Performance</h2>
     <table>
       <thead>
         <tr>
-          <th>Product</th>
+          <th>FSN</th>
           <th>Views</th>
           <th>Clicks</th>
           <th>Revenue (₹)</th>
@@ -47,29 +49,8 @@
     </table>
   </section>
 
-  <section class="card">
-    <h2>Placement Performance</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Placement</th>
-          <th>Spend (₹)</th>
-          <th>Revenue (₹)</th>
-          <th>ROI</th>
-        </tr>
-      </thead>
-      <tbody id="placementTable"></tbody>
-    </table>
-  </section>
-
-  <section class="card">
-    <h2>Campaign Order Health</h2>
-    <div id="campaignSummary"></div>
-  </section>
-
 </main>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
