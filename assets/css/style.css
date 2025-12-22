@@ -1,66 +1,56 @@
-body {
-  font-family: system-ui, sans-serif;
-  background: #f8fafc;
-  margin: 0;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Flipkart PPC Audit Report</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
 
-.audit-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
-}
+<header class="audit-header">
+  <img src="assets/logo.png" class="logo">
+  <div>
+    <h2>Flipkart PPC Audit Report</h2>
+    <small>FSN-level Performance Audit</small>
+  </div>
+</header>
 
-.logo {
-  height: 42px;
-}
+<main class="container">
 
-.container {
-  max-width: 1200px;
-  margin: auto;
-  padding: 20px;
-}
+  <!-- AUDIT SCORE -->
+  <section class="card score-card">
+    <h2>Audit Score</h2>
+    <div id="auditScore" class="audit-score">0</div>
+  </section>
 
-.card {
-  background: #ffffff;
-  padding: 20px;
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  margin-bottom: 24px;
-}
+  <!-- SUMMARY -->
+  <section class="card">
+    <h2>Summary</h2>
+    <table class="summary-table">
+      <tbody id="summaryTable"></tbody>
+    </table>
+  </section>
 
-.score-card {
-  border-left: 6px solid #2563eb;
-}
+  <!-- FSN PERFORMANCE -->
+  <section class="card">
+    <h2>FSN / Product Performance</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>FSN</th>
+          <th>Views</th>
+          <th>Clicks</th>
+          <th>Revenue (₹)</th>
+          <th>ROI</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="fsnTable"></tbody>
+    </table>
+  </section>
 
-.audit-score {
-  font-size: 42px;
-  font-weight: 700;
-  margin-top: 8px;
-}
+</main>
 
-.summary-table td {
-  padding: 10px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th, td {
-  padding: 10px;
-  border: 1px solid #e5e7eb;
-  text-align: left;
-}
-
-th {
-  background: #f1f5f9;
-}
-
-.status-good { color: #15803d; font-weight: 600; }
-.status-fix  { color: #b45309; font-weight: 600; }
-.status-bad  { color: #b91c1c; font-weight: 700; }
+<script src="js/app.js"></script>
+</body>
+</html>
