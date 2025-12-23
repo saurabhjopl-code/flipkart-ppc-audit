@@ -8,62 +8,57 @@
 
 <header class="brand-header">
   <img src="assets/logo.png" class="brand-logo">
-  <div class="brand-text">
+  <div>
     <h1>Flipkart PPC Audit Report</h1>
-    <p>SKU-level Performance Audit</p>
+    <p>Campaign · SKU · Placement · Strategy</p>
   </div>
 </header>
 
 <main class="container">
 
-  <section class="card score-card">
-    <h2>Audit Score</h2>
-    <div id="auditScore" class="audit-score">0</div>
+  <section class="card">
+    <h2>Campaign Performance</h2>
+    <table><tbody id="campaignPerformance"></tbody></table>
   </section>
 
   <section class="card">
-    <h2>Summary</h2>
+    <h2>Direct vs Indirect Impact</h2>
+    <table><tbody id="directIndirect"></tbody></table>
+  </section>
+
+  <section class="card">
+    <h2>Campaign Funnel Health</h2>
+    <table><tbody id="campaignFunnel"></tbody></table>
+  </section>
+
+  <section class="card">
+    <h2>SKU / FSN Performance</h2>
+    <table><tbody id="skuTable"></tbody></table>
+  </section>
+
+  <section class="card">
+    <h2>Placement Effectiveness</h2>
+    <table><tbody id="placementTable"></tbody></table>
+  </section>
+
+  <section class="card">
+    <h2>Daily Sales Trend</h2>
+    <table><tbody id="dailyTrend"></tbody></table>
+  </section>
+
+  <section class="card">
+    <h2>Ads Contribution & Volatility</h2>
     <table><tbody id="summaryTable"></tbody></table>
   </section>
 
   <section class="card">
-    <h2>Critical Issues</h2>
-    <ul id="criticalIssues"></ul>
+    <h2>Executive Summary</h2>
+    <ul id="execSummary"></ul>
   </section>
 
   <section class="card">
-    <h2>SKU / Product Performance</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>SKU</th><th>Views</th><th>Clicks</th>
-          <th>Spend</th><th>Revenue</th><th>ROI</th><th>Status</th>
-        </tr>
-      </thead>
-      <tbody id="skuTable"></tbody>
-    </table>
-  </section>
-
-  <section class="card">
-    <h2>Placement Performance</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Placement</th><th>Spend</th><th>Revenue</th><th>ROI</th><th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="placementTable"></tbody>
-    </table>
-  </section>
-
-  <section class="card">
-    <h2>Campaign Order Health</h2>
-    <div id="campaignSummary"></div>
-  </section>
-
-  <section class="card">
-    <h2>Recommendations</h2>
-    <button id="downloadRecommendations">Download Recommendations (CSV)</button>
+    <h2>Download Recommendations</h2>
+    <button id="downloadReco">Download CSV</button>
   </section>
 
 </main>
