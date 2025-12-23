@@ -1,13 +1,8 @@
-/***********************
-  GLOBAL HELPERS
-************************/
 const num = v => Number(v) || 0;
 const uploaded = {};
 const recommendations = [];
 
-/***********************
-  CSV PARSER
-************************/
+/* ---------- CSV PARSER ---------- */
 function parseCSV(text) {
   const lines = text.trim().split(/\r?\n/);
   const headers = lines[0].split(",").map(h => h.trim());
@@ -19,9 +14,7 @@ function parseCSV(text) {
   });
 }
 
-/***********************
-  FILE UPLOAD BINDING
-************************/
+/* ---------- UPLOAD ---------- */
 function bindUpload(inputId, key, statusId) {
   const input = document.getElementById(inputId);
   if (!input) return;
@@ -36,147 +29,153 @@ function bindUpload(inputId, key, statusId) {
       document.getElementById(statusId).textContent = "Uploaded ✓";
       document.getElementById(statusId).style.color = "green";
 
-      // enable button only when all files uploaded
-      const ready = ["daily", "fsn", "placement", "campaign"]
+      const ready = ["daily","fsn","placement","campaign"]
         .every(k => uploaded[k] && uploaded[k].length > 0);
 
-      const btn = document.getElementById("generateAudit");
-      if (btn) btn.disabled = !ready;
+      document.getElementById("generateAudit").disabled = !ready;
     };
     reader.readAsText(file);
   });
 }
 
-/***********************
-  INDEX PAGE INIT
-************************/
-function initIndexPage() {
-  bindUpload("dailyFile", "daily", "dailyStatus");
-  bindUpload("fsnFile", "fsn", "fsnStatus");
-  bindUpload("placementFile", "placement", "placementStatus");
-  bindUpload("campaignFile", "campaign", "campaignStatus");
+function initIndex() {
+  bindUpload("dailyFile","daily","dailyStatus");
+  bindUpload("fsnFile","fsn","fsnStatus");
+  bindUpload("placementFile","placement","placementStatus");
+  bindUpload("campaignFile","campaign","campaignStatus");
 
-  const btn = document.getElementById("generateAudit");
-  if (!btn) return;
-
-  btn.addEventListener("click", () => {
+  document.getElementById("generateAudit").onclick = () => {
     localStorage.setItem("auditData", JSON.stringify(uploaded));
     window.location.href = "audit.html";
-  });
+  };
 }
 
-/***********************
-  AUDIT PAGE RENDER
-************************/
+/* ---------- AUDIT ---------- */
 function renderAudit() {
-  const raw = localStorage.getItem("auditData");
-  if (!raw) {
-    alert("No data found. Please upload files again.");
-    window.location.href = "index.html";
-    return;
-  }
+  const data = JSON.parse(localStorage.getItem("auditData"));
+  if (!data) return;
 
-  const data = JSON.parse(raw);
-
-  /* =========================
-     CAMPAIGN PERFORMANCE
-  ========================== */
-  const campaignMap = {};
-
+  /* ===== CAMPAIGN ===== */
+  const camp = {};
   data.campaign.forEach(r => {
-    const c = r["Campaign Name"] || r["Campaign ID"];
-    if (!campaignMap[c]) {
-      campaignMap[c] = {
-        direct: 0,
-        indirect: 0,
-        orders: new Set(),
-        revenue: 0,
-        views: 0,
-        clicks: 0
-      };
-    }
-    campaignMap[c].direct += num(r["Direct Units Sold"]);
-    campaignMap[c].indirect += num(r["Indirect Units Sold"]);
-    campaignMap[c].revenue += num(r["Total Revenue (Rs.)"]);
-    if (r.order_id) campaignMap[c].orders.add(r.order_id);
+    const k = r["Campaign ID"] || r["Campaign Name"];
+    if (!k) return;
+    if (!camp[k]) camp[k] = { d:0,i:0,o:new Set(),rev:0,v:0,c:0 };
+    camp[k].d += num(r["Direct Units Sold"]);
+    camp[k].i += num(r["Indirect Units Sold"]);
+    camp[k].rev += num(r["Total Revenue (Rs.)"]);
+    if (r.order_id) camp[k].o.add(r.order_id);
   });
 
   data.daily.forEach(r => {
-    const c = r["Campaign Name"] || r["Campaign ID"];
-    if (!campaignMap[c]) return;
-    campaignMap[c].views += num(r["Views"]);
-    campaignMap[c].clicks += num(r["Clicks"]);
+    const k = r["Campaign ID"] || r["Campaign Name"];
+    if (!camp[k]) return;
+    camp[k].v += num(r["Views"]);
+    camp[k].c += num(r["Clicks"]);
   });
 
-  const cp = document.getElementById("campaignPerformance");
-  const di = document.getElementById("directIndirect");
-  const cf = document.getElementById("campaignFunnel");
+  Object.entries(camp).forEach(([k,v]) => {
+    campaignPerformance.innerHTML +=
+      `<tr><td>${k}</td><td>${v.d}</td><td>${v.i}</td><td>${v.o.size}</td><td>${v.rev}</td></tr>`;
 
-  Object.entries(campaignMap).forEach(([c, v]) => {
-    cp.innerHTML += `
-      <tr>
-        <td>${c}</td>
-        <td>${v.direct}</td>
-        <td>${v.indirect}</td>
-        <td>${v.orders.size}</td>
-        <td>${v.revenue.toLocaleString()}</td>
-      </tr>`;
+    const tot = v.d + v.i;
+    const dp = tot ? (v.d/tot*100).toFixed(1) : "0";
+    const ip = (100-dp).toFixed(1);
+    const type = dp>=60?"Closing-heavy":(ip>=60?"Halo-heavy":"Balanced");
 
-    const totalUnits = v.direct + v.indirect;
-    const dPct = totalUnits ? (v.direct / totalUnits * 100).toFixed(1) : "0.0";
-    const iPct = (100 - dPct).toFixed(1);
-    const type = dPct >= 60 ? "Closing-heavy" : (iPct >= 60 ? "Halo-heavy" : "Balanced");
+    directIndirect.innerHTML +=
+      `<tr><td>${k}</td><td>${dp}%</td><td>${ip}%</td><td>${type}</td></tr>`;
 
-    di.innerHTML += `
-      <tr>
-        <td>${c}</td>
-        <td>${dPct}%</td>
-        <td>${iPct}%</td>
-        <td>${type}</td>
-      </tr>`;
+    let issue="Healthy";
+    if(v.o.size===0 && v.c>0) issue="Click Leakage";
+    else if(v.o.size===0) issue="Zero Orders";
 
-    let issue = "Healthy";
-    if (v.orders.size === 0 && v.clicks > 0) issue = "Click Leakage";
-    else if (v.orders.size === 0) issue = "Zero Orders";
+    campaignFunnel.innerHTML +=
+      `<tr><td>${k}</td><td>${v.v}</td><td>${v.c}</td><td>${v.o.size}</td><td>${issue}</td></tr>`;
 
-    cf.innerHTML += `
-      <tr>
-        <td>${c}</td>
-        <td>${v.views}</td>
-        <td>${v.clicks}</td>
-        <td>${v.orders.size}</td>
-        <td>${issue}</td>
-      </tr>`;
-
-    recommendations.push({ Type: "Campaign", Name: c, Action: issue });
+    recommendations.push({Type:"Campaign",Name:k,Action:issue});
   });
 
-  /* =========================
-     DOWNLOAD RECOMMENDATIONS
-  ========================== */
-  const dl = document.getElementById("downloadReco");
-  if (dl) {
-    dl.onclick = () => {
-      const csv =
-        "Type,Name,Action\n" +
-        recommendations.map(r => `${r.Type},${r.Name},${r.Action}`).join("\n");
+  /* ===== SKU ===== */
+  const sku={}; let totalClicks=0;
+  data.fsn.forEach(r=>{
+    const s=r["Sku Id"]; if(!s) return;
+    if(!sku[s]) sku[s]={c:0,o:0,r:0};
+    sku[s].c+=num(r.Clicks);
+    sku[s].o+=num(r["Direct Units Sold"])+num(r["Indirect Units Sold"]);
+    sku[s].r+=num(r["Total Revenue (Rs.)"]);
+    totalClicks+=num(r.Clicks);
+  });
 
-      const blob = new Blob([csv], { type: "text/csv" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "Flipkart_PPC_Recommendations.csv";
-      a.click();
-    };
-  }
+  let spend=0;
+  data.daily.forEach(r=>spend+=num(r["Ad Spend"]));
+
+  Object.entries(sku).forEach(([s,v])=>{
+    const sp=totalClicks?(v.c/totalClicks)*spend:0;
+    const roi=sp? v.r/sp:0;
+    skuTable.innerHTML+=
+      `<tr><td>${s}</td><td>${v.c}</td><td>${v.o}</td><td>${v.r}</td><td>${sp.toFixed(0)}</td><td>${roi.toFixed(2)}</td></tr>`;
+  });
+
+  /* ===== PLACEMENT ===== */
+  const place={};
+  data.placement.forEach(r=>{
+    const p=(r["Placement Type"]||"UNKNOWN").trim().toUpperCase();
+    if(!place[p]) place[p]={v:0,c:0,s:0,r:0};
+    place[p].v+=num(r.Views);
+    place[p].c+=num(r.Clicks);
+    place[p].s+=num(r["Ad Spend"]);
+    place[p].r+=num(r["Direct Revenue"])+num(r["Indirect Revenue"]);
+  });
+
+  Object.entries(place).forEach(([p,v])=>{
+    const roas=v.s?v.r/v.s:0;
+    const act=roas>=1?"Scale":"Reduce";
+    placementTable.innerHTML+=
+      `<tr><td>${p}</td><td>${v.v}</td><td>${v.c}</td><td>${v.s}</td><td>${v.r}</td><td>${roas.toFixed(2)}</td><td>${act}</td></tr>`;
+    recommendations.push({Type:"Placement",Name:p,Action:act});
+  });
+
+  /* ===== DAILY ===== */
+  const day={};
+  data.daily.forEach(r=>{
+    const d=r.Date;
+    if(!day[d]) day[d]={t:0,a:0,o:0};
+    day[d].t+=num(r["Total Revenue (Rs.)"]);
+  });
+
+  data.campaign.forEach(r=>{
+    const d=r.Date;
+    if(!day[d]) return;
+    day[d].a+=num(r["Total Revenue (Rs.)"]);
+    if(r.order_id) day[d].o++;
+  });
+
+  Object.entries(day).forEach(([d,v])=>{
+    dailyTrend.innerHTML+=
+      `<tr><td>${d}</td><td>${v.t}</td><td>${v.a}</td><td>${v.o}</td></tr>`;
+  });
+
+  const totRev=Object.values(day).reduce((a,b)=>a+b.t,0);
+  const adsRev=Object.values(day).reduce((a,b)=>a+b.a,0);
+
+  adsSummary.innerHTML=
+    `<tr><td>Total Revenue</td><td>${totRev}</td></tr>
+     <tr><td>Ads Revenue</td><td>${adsRev}</td></tr>
+     <tr><td>Ads %</td><td>${((adsRev/totRev)*100).toFixed(2)}%</td></tr>`;
+
+  /* ===== EXPORT ===== */
+  downloadReco.onclick=()=>{
+    const csv="Type,Name,Action\n"+recommendations.map(r=>`${r.Type},${r.Name},${r.Action}`).join("\n");
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+    a.download="Flipkart_PPC_Recommendations.csv";
+    a.click();
+  };
 }
 
-/***********************
-  BOOTSTRAP
-************************/
-document.addEventListener("DOMContentLoaded", () => {
-  if (document.getElementById("dailyFile")) {
-    initIndexPage();          // index.html
-  } else {
-    renderAudit();            // audit.html
-  }
+/* ---------- BOOT ---------- */
+document.addEventListener("DOMContentLoaded",()=>{
+  if(document.getElementById("dailyFile")) initIndex();
+  else renderAudit();
 });
