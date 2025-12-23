@@ -54,3 +54,17 @@
 <script src="js/app.js"></script>
 </body>
 </html>
+.toggle-btn {
+  margin-bottom: 12px;
+  padding: 8px 14px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.toggle-btn:hover {
+  opacity: 0.9;
+}
+
