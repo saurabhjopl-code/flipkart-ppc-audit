@@ -23,9 +23,7 @@
 
   <section class="card">
     <h2>Summary</h2>
-    <table>
-      <tbody id="summaryTable"></tbody>
-    </table>
+    <table><tbody id="summaryTable"></tbody></table>
   </section>
 
   <section class="card">
@@ -35,12 +33,11 @@
 
   <section class="card">
     <h2>SKU / Product Performance</h2>
-    <button id="toggleSku" class="toggle-btn">Show all SKUs</button>
     <table>
       <thead>
         <tr>
           <th>SKU</th><th>Views</th><th>Clicks</th>
-          <th>Ad Spend (₹)</th><th>Revenue (₹)</th><th>ROI</th><th>Status</th>
+          <th>Spend</th><th>Revenue</th><th>ROI</th><th>Status</th>
         </tr>
       </thead>
       <tbody id="skuTable"></tbody>
@@ -52,7 +49,7 @@
     <table>
       <thead>
         <tr>
-          <th>Placement</th><th>Spend (₹)</th><th>Revenue (₹)</th><th>ROI</th><th>Recommendation</th>
+          <th>Placement</th><th>Spend</th><th>Revenue</th><th>ROI</th><th>Action</th>
         </tr>
       </thead>
       <tbody id="placementTable"></tbody>
@@ -62,6 +59,11 @@
   <section class="card">
     <h2>Campaign Order Health</h2>
     <div id="campaignSummary"></div>
+  </section>
+
+  <section class="card">
+    <h2>Recommendations</h2>
+    <button id="downloadRecommendations">Download Recommendations (CSV)</button>
   </section>
 
 </main>
