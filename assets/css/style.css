@@ -50,12 +50,18 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
 }
 
-td {
+th, td {
   border: 1px solid #e5e7eb;
   padding: 8px;
+  text-align: left;
 }
