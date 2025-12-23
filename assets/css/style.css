@@ -1,71 +1,61 @@
-:root {
-  --primary:#0f766e;
-  --accent:#c9a44c;
-  --bg:#f8fafc;
-  --border:#e5e7eb;
-}
-
 body {
-  margin:0;
-  font-family:system-ui;
-  background:var(--bg);
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  background: #f8fafc;
 }
 
 .brand-header {
-  display:flex;
-  align-items:center;
-  gap:16px;
-  padding:16px 24px;
-  background:#fff;
-  border-bottom:3px solid var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 24px;
+  background: #ffffff;
+  border-bottom: 3px solid #0f766e;
 }
 
-.brand-logo { height:48px; }
+.brand-logo { height: 44px; }
 
-.container { max-width:1200px; margin:auto; padding:24px; }
+.container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 24px;
+}
 
 .card {
-  background:#fff;
-  border:1px solid var(--border);
-  border-radius:12px;
-  padding:20px;
-  margin-bottom:24px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 18px;
+  margin-bottom: 24px;
+  border: 1px solid #e5e7eb;
 }
 
-h2 { color:var(--primary); }
-
 .upload-grid {
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-  gap:16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+  gap: 16px;
 }
 
 .upload-box {
-  border:2px dashed var(--border);
-  padding:14px;
-  border-radius:8px;
+  border: 2px dashed #e5e7eb;
+  padding: 12px;
+  border-radius: 8px;
 }
 
 button {
-  background:var(--primary);
-  color:#fff;
-  border:none;
-  padding:10px 18px;
-  border-radius:8px;
-  cursor:pointer;
+  background: #0f766e;
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
 }
-
-button:disabled { background:#9ca3af; }
 
 table {
-  width:100%;
-  border-collapse:collapse;
+  width: 100%;
+  border-collapse: collapse;
 }
 
-th,td {
-  border:1px solid var(--border);
-  padding:8px;
-  text-align:right;
+td {
+  border: 1px solid #e5e7eb;
+  padding: 8px;
 }
-
-th:first-child, td:first-child { text-align:left; }
