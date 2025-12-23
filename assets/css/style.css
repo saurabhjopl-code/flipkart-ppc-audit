@@ -1,70 +1,238 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Flipkart PPC Audit Report</title>
-  <link rel="stylesheet" href="assets/css/style.css">
-</head>
-<body>
+/* =========================
+   BRAND VARIABLES
+========================= */
+:root {
+  --brand-primary: #0f766e;
+  --brand-accent: #c9a44c;
+  --brand-bg: #f8fafc;
+  --card-bg: #ffffff;
+  --border-soft: #e5e7eb;
+  --text-dark: #1f2937;
+  --text-muted: #6b7280;
+}
 
-<header class="audit-header">
-  <img src="assets/logo.png" class="logo">
-  <div>
-    <h2>Flipkart PPC Audit Report</h2>
-    <small>FSN-level Performance Audit</small>
-  </div>
-</header>
+/* =========================
+   GLOBAL
+========================= */
+* {
+  box-sizing: border-box;
+}
 
-<main class="container">
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: var(--brand-bg);
+  color: var(--text-dark);
+}
 
-  <!-- AUDIT SCORE -->
-  <section class="card score-card">
-    <h2>Audit Score</h2>
-    <div id="auditScore" class="audit-score">0</div>
-  </section>
+.container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 28px 20px;
+}
 
-  <!-- SUMMARY -->
-  <section class="card">
-    <h2>Summary</h2>
-    <table class="summary-table">
-      <tbody id="summaryTable"></tbody>
-    </table>
-  </section>
+/* =========================
+   BRAND HEADER
+========================= */
+.brand-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 28px;
+  background: #ffffff;
+  border-bottom: 3px solid var(--brand-primary);
+}
 
-  <!-- FSN PERFORMANCE -->
-  <section class="card">
-    <h2>FSN / Product Performance</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>FSN</th>
-          <th>Views</th>
-          <th>Clicks</th>
-          <th>Revenue (₹)</th>
-          <th>ROI</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody id="fsnTable"></tbody>
-    </table>
-  </section>
+.brand-logo {
+  height: 54px;
+}
 
-</main>
+.brand-text h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--brand-primary);
+}
 
-<script src="js/app.js"></script>
-</body>
-</html>
-.toggle-btn {
-  margin-bottom: 12px;
-  padding: 8px 14px;
-  background: #2563eb;
-  color: #fff;
+.brand-text p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* =========================
+   CARDS
+========================= */
+.card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 22px;
+  border: 1px solid var(--border-soft);
+  margin-bottom: 24px;
+}
+
+.card h2 {
+  margin-top: 0;
+  font-size: 18px;
+  color: var(--brand-primary);
+  border-left: 4px solid var(--brand-accent);
+  padding-left: 10px;
+}
+
+/* =========================
+   UPLOAD GRID
+========================= */
+.upload-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.upload-box {
+  border: 2px dashed var(--border-soft);
+  border-radius: 10px;
+  padding: 16px;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.upload-box label {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.upload-box input {
+  margin-bottom: 10px;
+}
+
+.status {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.status:contains("Uploaded") {
+  color: green;
+}
+
+/* =========================
+   CTA BUTTON
+========================= */
+.cta {
+  text-align: right;
+  margin-top: 10px;
+}
+
+button {
+  padding: 12px 22px;
+  font-size: 15px;
+  font-weight: 600;
+  background: var(--brand-primary);
+  color: #ffffff;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
 }
 
-.toggle-btn:hover {
-  opacity: 0.9;
+button:hover {
+  opacity: 0.92;
 }
 
+button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* =========================
+   AUDIT SCORE
+========================= */
+.score-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.audit-score {
+  font-size: 46px;
+  font-weight: 800;
+  color: var(--brand-primary);
+}
+
+/* =========================
+   TABLES
+========================= */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 14px;
+  font-size: 14px;
+}
+
+th {
+  background: #f1f5f9;
+  color: #111827;
+  font-weight: 700;
+  padding: 10px;
+  border: 1px solid var(--border-soft);
+  text-align: left;
+}
+
+td {
+  padding: 9px 10px;
+  border: 1px solid var(--border-soft);
+}
+
+td:nth-child(n+2) {
+  text-align: right;
+}
+
+tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+/* =========================
+   STATUS COLORS
+========================= */
+.status-good {
+  color: #15803d;
+  font-weight: 700;
+}
+
+.status-fix {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.status-bad {
+  color: #b91c1c;
+  font-weight: 800;
+}
+
+/* =========================
+   TOGGLE BUTTON
+========================= */
+.toggle-btn {
+  margin-bottom: 12px;
+  padding: 8px 14px;
+  background: var(--brand-accent);
+  color: #1f2937;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* =========================
+   PDF SAFETY
+========================= */
+@media print {
+  body {
+    background: #ffffff;
+  }
+  button {
+    display: none;
+  }
+}
