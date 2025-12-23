@@ -1,84 +1,4 @@
-/***********************
- * UPLOAD PAGE LOGIC
- ***********************/
-const uploadedData = {};
-
-const HEADERS = {
-  daily: ["Campaign ID","Campaign Name","Date","Ad Spend","Views","Clicks","Total converted units","Total Revenue (Rs.)","ROI"],
-  fsn: ["Campaign ID","Campaign Name","AdGroup ID","AdGroup Name","Sku Id","Product Name","Views","Clicks","Direct Units Sold","Indirect Units Sold","Total Revenue (Rs.)","Conversion Rate","ROI"],
-  placement: ["Campaign ID","Campaign Name","AdGroup Name","Placement Type","Views","Clicks","Click Through Rate in %","Average CPC","Conversion Rate","Ad Spend","Direct Units Sold","Indirect Units Sold","Direct Revenue","Indirect Revenue","ROI"],
-  campaign: ["Campaign ID","AdGroup Name","Listing ID","Product Name","Advertised FSN ID","Date","order_id","AdGroup CPC","Expected ROI","Purchased FSN ID","Total Revenue (Rs.)","Direct Units Sold","Indirect Units Sold"]
-};
-
-function parseCSV(text) {
-  const lines = text.trim().split(/\r?\n/);
-  const headers = lines[0].split(",").map(h => h.trim());
-  const rows = lines.slice(1).map(line => {
-    const values = line.split(",");
-    const obj = {};
-    headers.forEach((h, i) => obj[h] = values[i]?.trim() || "");
-    return obj;
-  });
-  return { headers, rows };
-}
-
-function validateHeaders(actual, expected) {
-  return expected.every(h => actual.includes(h));
-}
-
-function bindUpload(inputId, type, statusId) {
-  document.getElementById(inputId).addEventListener("change", e => {
-    const file = e.target.files[0];
-    const status = document.getElementById(statusId);
-    if (!file) return;
-
-    status.textContent = "Validating...";
-    const reader = new FileReader();
-
-    reader.onload = ev => {
-      const parsed = parseCSV(ev.target.result);
-      if (!validateHeaders(parsed.headers, HEADERS[type])) {
-        status.textContent = "Invalid header ✕";
-        status.style.color = "red";
-        return;
-      }
-      uploadedData[type] = parsed.rows;
-      status.textContent = "Uploaded ✓";
-      status.style.color = "green";
-      checkReady();
-    };
-
-    reader.readAsText(file);
-  });
-}
-
-function checkReady() {
-  const ready = ["daily","fsn","placement","campaign"].every(k => uploadedData[k]);
-  document.getElementById("generateAudit").disabled = !ready;
-  document.getElementById("validation-summary").classList.toggle("hidden", !ready);
-}
-
-function runAudit() {
-  localStorage.setItem("rawData", JSON.stringify(uploadedData));
-  window.location.href = "audit.html";
-}
-
-/***********************
- * AUDIT PAGE LOGIC
- ***********************/
 document.addEventListener("DOMContentLoaded", () => {
-
-  /* Upload page bindings */
-  if (document.getElementById("dailyFile")) {
-    bindUpload("dailyFile","daily","dailyStatus");
-    bindUpload("fsnFile","fsn","fsnStatus");
-    bindUpload("placementFile","placement","placementStatus");
-    bindUpload("campaignFile","campaign","campaignStatus");
-    document.getElementById("generateAudit").onclick = runAudit;
-  }
-
-  /* Audit page rendering */
-  if (!document.getElementById("fsnTable")) return;
 
   const raw = localStorage.getItem("rawData");
   if (!raw) return;
@@ -86,7 +6,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const data = JSON.parse(raw);
   const num = v => Number(v) || 0;
 
-  /* SUMMARY */
+  /* =========================
+     SUMMARY
+  ========================== */
   let spend = 0, revenue = 0, roiSum = 0, roiCount = 0;
   data.daily.forEach(r => {
     spend += num(r["Ad Spend"]);
@@ -94,7 +16,11 @@ document.addEventListener("DOMContentLoaded", () => {
     roiSum += num(r["ROI"]);
     roiCount++;
   });
+  const avgROI = roiCount ? roiSum / roiCount : 0;
 
+  /* =========================
+     FSN CONSOLIDATION
+  ========================== */
   const fsnMap = {};
   data.fsn.forEach(r => {
     const fsn = r["Sku Id"];
@@ -107,26 +33,98 @@ document.addEventListener("DOMContentLoaded", () => {
     fsnMap[fsn].roiList.push(num(r["ROI"]));
   });
 
+  /* =========================
+     PLACEMENT CONSOLIDATION
+  ========================== */
+  const placementMap = {};
+  data.placement.forEach(r => {
+    const p = r["Placement Type"];
+    if (!placementMap[p]) {
+      placementMap[p] = { spend: 0, revenue: 0 };
+    }
+    placementMap[p].spend += num(r["Ad Spend"]);
+    placementMap[p].revenue += num(r["Direct Revenue"]) + num(r["Indirect Revenue"]);
+  });
+
+  /* =========================
+     CAMPAIGN ORDERS
+  ========================== */
+  let totalOrders = 0, campaignRevenue = 0;
+  const orderSet = new Set();
+
+  data.campaign.forEach(r => {
+    const key = r["order_id"] || `${r["Campaign ID"]}_${r["Date"]}_${r["Purchased FSN ID"]}`;
+    if (!orderSet.has(key)) {
+      orderSet.add(key);
+      totalOrders += num(r["Direct Units Sold"]) + num(r["Indirect Units Sold"]);
+      campaignRevenue += num(r["Total Revenue (Rs.)"]);
+    }
+  });
+
+  /* =========================
+     AUDIT SCORE + ISSUES
+  ========================== */
+  let auditScore = 100;
+  const issues = [];
+
+  Object.values(fsnMap).forEach(r => {
+    const worstROI = Math.min(...r.roiList);
+    if (worstROI < 1) {
+      auditScore -= 2;
+    } else if (worstROI < 1.5) {
+      auditScore -= 1;
+    }
+  });
+
+  Object.entries(placementMap).forEach(([p, r]) => {
+    const roi = r.spend ? r.revenue / r.spend : 0;
+    if (roi < avgROI) {
+      issues.push(`Placement "${p}" underperforming vs account average`);
+      auditScore -= 2;
+    }
+  });
+
+  if (avgROI < 1.5) {
+    issues.push("Overall account ROI below healthy benchmark");
+    auditScore -= 5;
+  }
+
+  auditScore = Math.max(auditScore, 20);
+
+  /* =========================
+     RENDER SUMMARY
+  ========================== */
   document.getElementById("summaryTable").innerHTML = `
     <tr><td><b>Total Ad Spend</b></td><td>₹${spend.toLocaleString()}</td></tr>
     <tr><td><b>Total Revenue</b></td><td>₹${revenue.toLocaleString()}</td></tr>
-    <tr><td><b>Average ROI</b></td><td>${(roiSum/roiCount).toFixed(2)}</td></tr>
+    <tr><td><b>Average ROI</b></td><td>${avgROI.toFixed(2)}</td></tr>
+    <tr><td><b>Total Orders</b></td><td>${totalOrders}</td></tr>
     <tr><td><b>Total FSNs</b></td><td>${Object.keys(fsnMap).length}</td></tr>
   `;
 
-  /* FSN TABLE + AUDIT SCORE */
-  let auditScore = 100;
+  document.getElementById("auditScore").textContent = auditScore;
+
+  /* =========================
+     RENDER CRITICAL ISSUES
+  ========================== */
+  const issueBox = document.getElementById("criticalIssues");
+  issues.slice(0, 8).forEach(i => {
+    const li = document.createElement("li");
+    li.textContent = i;
+    issueBox.appendChild(li);
+  });
+
+  /* =========================
+     RENDER FSN TABLE
+  ========================== */
+  const fsnTable = document.getElementById("fsnTable");
   Object.entries(fsnMap).forEach(([fsn, r]) => {
     const worstROI = Math.min(...r.roiList);
     let status = "Good", cls = "status-good";
+    if (worstROI < 1) { status = "Bad"; cls = "status-bad"; }
+    else if (worstROI < 1.5) { status = "Needs Fix"; cls = "status-fix"; }
 
-    if (worstROI < 1) {
-      status = "Bad"; cls = "status-bad"; auditScore -= 3;
-    } else if (worstROI < 1.5) {
-      status = "Needs Fix"; cls = "status-fix"; auditScore -= 1;
-    }
-
-    document.getElementById("fsnTable").innerHTML += `
+    fsnTable.innerHTML += `
       <tr>
         <td>${fsn}</td>
         <td>${r.views}</td>
@@ -134,9 +132,32 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${r.revenue.toLocaleString()}</td>
         <td>${worstROI.toFixed(2)}</td>
         <td class="${cls}">${status}</td>
-      </tr>
-    `;
+      </tr>`;
   });
 
-  document.getElementById("auditScore").textContent = Math.max(auditScore, 0);
+  /* =========================
+     RENDER PLACEMENT TABLE
+  ========================== */
+  const placementTable = document.getElementById("placementTable");
+  Object.entries(placementMap).forEach(([p, r]) => {
+    const roi = r.spend ? r.revenue / r.spend : 0;
+    const rec = roi >= avgROI ? "Scale" : "Reduce";
+
+    placementTable.innerHTML += `
+      <tr>
+        <td>${p}</td>
+        <td>${r.spend.toLocaleString()}</td>
+        <td>${r.revenue.toLocaleString()}</td>
+        <td>${roi.toFixed(2)}</td>
+        <td>${rec}</td>
+      </tr>`;
+  });
+
+  /* =========================
+     CAMPAIGN SUMMARY
+  ========================== */
+  document.getElementById("campaignSummary").innerHTML = `
+    <p><b>Total Orders:</b> ${totalOrders}</p>
+    <p><b>Campaign Revenue:</b> ₹${campaignRevenue.toLocaleString()}</p>
+  `;
 });
