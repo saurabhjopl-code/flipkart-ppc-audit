@@ -2,17 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Flipkart PPC Audit Tool</title>
-  <link rel="stylesheet" href="assets/css/style.css"/>
+  <link rel="stylesheet" href="assets/css/style.css" />
 </head>
 <body>
 
 <header class="brand-header">
-  <img src="assets/logo.png" alt="Rajnandini" class="brand-logo">
+  <img src="assets/logo.png" class="brand-logo">
   <div class="brand-text">
     <h1>Flipkart PPC Audit Tool</h1>
-    <p>Professional FSN / SKU-level Ads Audit</p>
+    <p>Professional SKU-level Ads Audit</p>
   </div>
 </header>
 
@@ -22,7 +21,6 @@
     <h2>Upload Reports (CSV)</h2>
 
     <div class="upload-grid">
-
       <div class="upload-box">
         <label>Consolidated Daily Report</label>
         <input type="file" id="dailyFile">
@@ -46,17 +44,12 @@
         <input type="file" id="campaignFile">
         <span id="campaignStatus" class="status">Not uploaded</span>
       </div>
+    </div>
 
+    <div class="cta">
+      <button id="generateAudit" disabled>Generate Audit Report →</button>
     </div>
   </section>
-
-  <section id="validation-summary" class="card hidden">
-    ✔ All files validated successfully
-  </section>
-
-  <div class="cta">
-    <button id="generateAudit" disabled>Generate Audit Report →</button>
-  </div>
 
 </main>
 
