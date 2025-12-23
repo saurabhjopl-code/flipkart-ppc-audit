@@ -10,27 +10,45 @@ document.addEventListener("DOMContentLoaded", () => {
      SUMMARY
   ========================== */
   let spend = 0, revenue = 0, roiSum = 0, roiCount = 0;
+
   data.daily.forEach(r => {
     spend += num(r["Ad Spend"]);
     revenue += num(r["Total Revenue (Rs.)"]);
     roiSum += num(r["ROI"]);
     roiCount++;
   });
+
   const avgROI = roiCount ? roiSum / roiCount : 0;
 
   /* =========================
-     FSN CONSOLIDATION
+     SKU CONSOLIDATION
   ========================== */
-  const fsnMap = {};
+  const skuMap = {};
+  let anomalyCount = 0;
+
   data.fsn.forEach(r => {
-    const fsn = r["Sku Id"];
-    if (!fsnMap[fsn]) {
-      fsnMap[fsn] = { views: 0, clicks: 0, revenue: 0, roiList: [] };
+    const sku = r["Sku Id"];
+    if (!skuMap[sku]) {
+      skuMap[sku] = {
+        views: 0,
+        clicks: 0,
+        spend: 0,
+        revenue: 0,
+        roiList: []
+      };
     }
-    fsnMap[fsn].views += num(r["Views"]);
-    fsnMap[fsn].clicks += num(r["Clicks"]);
-    fsnMap[fsn].revenue += num(r["Total Revenue (Rs.)"]);
-    fsnMap[fsn].roiList.push(num(r["ROI"]));
+
+    const views = num(r["Views"]);
+    const clicks = num(r["Clicks"]);
+    const effectiveViews = views === 0 && clicks > 0 ? clicks : views;
+
+    if (views === 0 && clicks > 0) anomalyCount++;
+
+    skuMap[sku].views += effectiveViews;
+    skuMap[sku].clicks += clicks;
+    skuMap[sku].spend += num(r["Ad Spend"] || 0);
+    skuMap[sku].revenue += num(r["Total Revenue (Rs.)"]);
+    skuMap[sku].roiList.push(num(r["ROI"]));
   });
 
   /* =========================
@@ -47,18 +65,14 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* =========================
-     CAMPAIGN ORDERS
+     CAMPAIGN ORDERS (NO DEDUP)
   ========================== */
-  let totalOrders = 0, campaignRevenue = 0;
-  const orderSet = new Set();
+  let totalOrders = 0;
+  let campaignRevenue = 0;
 
   data.campaign.forEach(r => {
-    const key = r["order_id"] || `${r["Campaign ID"]}_${r["Date"]}_${r["Purchased FSN ID"]}`;
-    if (!orderSet.has(key)) {
-      orderSet.add(key);
-      totalOrders += num(r["Direct Units Sold"]) + num(r["Indirect Units Sold"]);
-      campaignRevenue += num(r["Total Revenue (Rs.)"]);
-    }
+    totalOrders += num(r["Direct Units Sold"]) + num(r["Indirect Units Sold"]);
+    campaignRevenue += num(r["Total Revenue (Rs.)"]);
   });
 
   /* =========================
@@ -67,13 +81,10 @@ document.addEventListener("DOMContentLoaded", () => {
   let auditScore = 100;
   const issues = [];
 
-  Object.values(fsnMap).forEach(r => {
+  Object.values(skuMap).forEach(r => {
     const worstROI = Math.min(...r.roiList);
-    if (worstROI < 1) {
-      auditScore -= 2;
-    } else if (worstROI < 1.5) {
-      auditScore -= 1;
-    }
+    if (worstROI < 1) auditScore -= 2;
+    else if (worstROI < 1.5) auditScore -= 1;
   });
 
   Object.entries(placementMap).forEach(([p, r]) => {
@@ -84,12 +95,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  if (avgROI < 1.5) {
-    issues.push("Overall account ROI below healthy benchmark");
-    auditScore -= 5;
+  if (anomalyCount > 0) {
+    issues.push(`${anomalyCount} SKUs show clicks without recorded views (reporting anomaly)`);
   }
 
-  auditScore = Math.max(auditScore, 20);
+  auditScore = Math.max(auditScore, 25);
 
   /* =========================
      RENDER SUMMARY
@@ -99,13 +109,13 @@ document.addEventListener("DOMContentLoaded", () => {
     <tr><td><b>Total Revenue</b></td><td>₹${revenue.toLocaleString()}</td></tr>
     <tr><td><b>Average ROI</b></td><td>${avgROI.toFixed(2)}</td></tr>
     <tr><td><b>Total Orders</b></td><td>${totalOrders}</td></tr>
-    <tr><td><b>Total FSNs</b></td><td>${Object.keys(fsnMap).length}</td></tr>
+    <tr><td><b>Total SKUs</b></td><td>${Object.keys(skuMap).length}</td></tr>
   `;
 
   document.getElementById("auditScore").textContent = auditScore;
 
   /* =========================
-     RENDER CRITICAL ISSUES
+     CRITICAL ISSUES
   ========================== */
   const issueBox = document.getElementById("criticalIssues");
   issues.slice(0, 8).forEach(i => {
@@ -115,28 +125,50 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* =========================
-     RENDER FSN TABLE
+     SKU TABLE (EXPAND / COLLAPSE)
   ========================== */
-  const fsnTable = document.getElementById("fsnTable");
-  Object.entries(fsnMap).forEach(([fsn, r]) => {
-    const worstROI = Math.min(...r.roiList);
-    let status = "Good", cls = "status-good";
-    if (worstROI < 1) { status = "Bad"; cls = "status-bad"; }
-    else if (worstROI < 1.5) { status = "Needs Fix"; cls = "status-fix"; }
+  const skuEntries = Object.entries(skuMap)
+    .map(([sku, r]) => {
+      const worstROI = Math.min(...r.roiList);
+      let status = "Good", cls = "status-good";
+      if (worstROI < 1) { status = "Bad"; cls = "status-bad"; }
+      else if (worstROI < 1.5) { status = "Needs Fix"; cls = "status-fix"; }
 
-    fsnTable.innerHTML += `
-      <tr>
-        <td>${fsn}</td>
-        <td>${r.views}</td>
-        <td>${r.clicks}</td>
-        <td>${r.revenue.toLocaleString()}</td>
-        <td>${worstROI.toFixed(2)}</td>
-        <td class="${cls}">${status}</td>
-      </tr>`;
-  });
+      return { sku, ...r, roi: worstROI, status, cls };
+    })
+    .sort((a, b) => a.roi - b.roi);
+
+  const skuTable = document.getElementById("skuTable");
+  let expanded = false;
+
+  function renderSkuTable() {
+    skuTable.innerHTML = "";
+    const rows = expanded ? skuEntries : skuEntries.slice(0, 15);
+    rows.forEach(r => {
+      skuTable.innerHTML += `
+        <tr>
+          <td>${r.sku}</td>
+          <td>${r.views}</td>
+          <td>${r.clicks}</td>
+          <td>${r.spend.toLocaleString()}</td>
+          <td>${r.revenue.toLocaleString()}</td>
+          <td>${r.roi.toFixed(2)}</td>
+          <td class="${r.cls}">${r.status}</td>
+        </tr>`;
+    });
+  }
+
+  document.getElementById("toggleSku").onclick = () => {
+    expanded = !expanded;
+    document.getElementById("toggleSku").textContent =
+      expanded ? "Show top 15 only" : "Show all SKUs";
+    renderSkuTable();
+  };
+
+  renderSkuTable();
 
   /* =========================
-     RENDER PLACEMENT TABLE
+     PLACEMENT TABLE
   ========================== */
   const placementTable = document.getElementById("placementTable");
   Object.entries(placementMap).forEach(([p, r]) => {
