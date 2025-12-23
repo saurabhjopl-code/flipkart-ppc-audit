@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Flipkart PPC Audit Report</title>
+  <title>Flipkart PPC Audit</title>
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -16,50 +16,123 @@
 
 <main class="container">
 
-  <section class="card">
-    <h2>Campaign Performance</h2>
-    <table><tbody id="campaignPerformance"></tbody></table>
-  </section>
+<!-- CAMPAIGN PERFORMANCE -->
+<section class="card">
+  <h2>Campaign Performance</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Campaign</th>
+        <th>Direct Units</th>
+        <th>Indirect Units</th>
+        <th>Total Orders</th>
+        <th>Revenue (₹)</th>
+      </tr>
+    </thead>
+    <tbody id="campaignPerformance"></tbody>
+  </table>
+</section>
 
-  <section class="card">
-    <h2>Direct vs Indirect Impact</h2>
-    <table><tbody id="directIndirect"></tbody></table>
-  </section>
+<!-- DIRECT VS INDIRECT -->
+<section class="card">
+  <h2>Direct vs Indirect Impact</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Campaign</th>
+        <th>% Direct</th>
+        <th>% Indirect</th>
+        <th>Type</th>
+      </tr>
+    </thead>
+    <tbody id="directIndirect"></tbody>
+  </table>
+</section>
 
-  <section class="card">
-    <h2>Campaign Funnel Health</h2>
-    <table><tbody id="campaignFunnel"></tbody></table>
-  </section>
+<!-- FUNNEL -->
+<section class="card">
+  <h2>Campaign Funnel Health</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Campaign</th>
+        <th>Views</th>
+        <th>Clicks</th>
+        <th>Orders</th>
+        <th>Issue</th>
+      </tr>
+    </thead>
+    <tbody id="campaignFunnel"></tbody>
+  </table>
+</section>
 
-  <section class="card">
-    <h2>SKU / FSN Performance</h2>
-    <table><tbody id="skuTable"></tbody></table>
-  </section>
+<!-- SKU -->
+<section class="card">
+  <h2>SKU / FSN Performance</h2>
+  <button id="toggleSku">Show all SKUs</button>
+  <table>
+    <thead>
+      <tr>
+        <th>SKU</th>
+        <th>Clicks</th>
+        <th>Orders</th>
+        <th>Revenue</th>
+        <th>Spend</th>
+        <th>ROI</th>
+      </tr>
+    </thead>
+    <tbody id="skuTable"></tbody>
+  </table>
+</section>
 
-  <section class="card">
-    <h2>Placement Effectiveness</h2>
-    <table><tbody id="placementTable"></tbody></table>
-  </section>
+<!-- PLACEMENT -->
+<section class="card">
+  <h2>Placement Effectiveness</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Placement</th>
+        <th>Views</th>
+        <th>Clicks</th>
+        <th>Spend</th>
+        <th>Revenue</th>
+        <th>ROAS</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="placementTable"></tbody>
+  </table>
+</section>
 
-  <section class="card">
-    <h2>Daily Sales Trend</h2>
-    <table><tbody id="dailyTrend"></tbody></table>
-  </section>
+<!-- DAILY -->
+<section class="card">
+  <h2>Daily Sales Trend</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Total Revenue</th>
+        <th>Ads Revenue</th>
+        <th>Ads Orders</th>
+      </tr>
+    </thead>
+    <tbody id="dailyTrend"></tbody>
+  </table>
+</section>
 
-  <section class="card">
-    <h2>Ads Contribution & Volatility</h2>
-    <table><tbody id="summaryTable"></tbody></table>
-  </section>
+<!-- ADS CONTRIBUTION -->
+<section class="card">
+  <h2>Ads Contribution & Volatility</h2>
+  <table>
+    <tbody id="adsSummary"></tbody>
+  </table>
+</section>
 
-  <section class="card">
-    <h2>Executive Summary</h2>
-    <ul id="execSummary"></ul>
-  </section>
-
-  <section class="card">
-    <h2>Download Recommendations</h2>
-    <button id="downloadReco">Download CSV</button>
-  </section>
+<!-- EXPORT -->
+<section class="card">
+  <h2>Recommendations</h2>
+  <button id="downloadReco">Download Recommendations (CSV)</button>
+</section>
 
 </main>
 
