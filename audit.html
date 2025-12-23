@@ -1,82 +1,64 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
   <title>Flipkart PPC Audit Report</title>
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
 
-<header class="audit-header">
-  <img src="assets/logo.png" class="logo">
-  <div>
-    <h2>Flipkart PPC Audit Report</h2>
-    <small>SKU-level Performance Audit</small>
+<header class="brand-header">
+  <img src="assets/logo.png" class="brand-logo">
+  <div class="brand-text">
+    <h1>Flipkart PPC Audit Report</h1>
+    <p>SKU-level Performance Audit</p>
   </div>
 </header>
 
 <main class="container">
 
-  <!-- AUDIT SCORE -->
   <section class="card score-card">
     <h2>Audit Score</h2>
     <div id="auditScore" class="audit-score">0</div>
   </section>
 
-  <!-- SUMMARY -->
   <section class="card">
     <h2>Summary</h2>
-    <table class="summary-table">
+    <table>
       <tbody id="summaryTable"></tbody>
     </table>
   </section>
 
-  <!-- CRITICAL ISSUES -->
   <section class="card">
     <h2>Critical Issues</h2>
     <ul id="criticalIssues"></ul>
   </section>
 
-  <!-- SKU PERFORMANCE -->
   <section class="card">
     <h2>SKU / Product Performance</h2>
-
     <button id="toggleSku" class="toggle-btn">Show all SKUs</button>
-
     <table>
       <thead>
         <tr>
-          <th>SKU</th>
-          <th>Views</th>
-          <th>Clicks</th>
-          <th>Ad Spend (₹)</th>
-          <th>Revenue (₹)</th>
-          <th>ROI</th>
-          <th>Status</th>
+          <th>SKU</th><th>Views</th><th>Clicks</th>
+          <th>Ad Spend (₹)</th><th>Revenue (₹)</th><th>ROI</th><th>Status</th>
         </tr>
       </thead>
       <tbody id="skuTable"></tbody>
     </table>
   </section>
 
-  <!-- PLACEMENT PERFORMANCE -->
   <section class="card">
     <h2>Placement Performance</h2>
     <table>
       <thead>
         <tr>
-          <th>Placement</th>
-          <th>Spend (₹)</th>
-          <th>Revenue (₹)</th>
-          <th>ROI</th>
-          <th>Recommendation</th>
+          <th>Placement</th><th>Spend (₹)</th><th>Revenue (₹)</th><th>ROI</th><th>Recommendation</th>
         </tr>
       </thead>
       <tbody id="placementTable"></tbody>
     </table>
   </section>
 
-  <!-- CAMPAIGN ORDER HEALTH -->
   <section class="card">
     <h2>Campaign Order Health</h2>
     <div id="campaignSummary"></div>
