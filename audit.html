@@ -11,7 +11,7 @@
   <img src="assets/logo.png" class="logo">
   <div>
     <h2>Flipkart PPC Audit Report</h2>
-    <small>FSN-level Performance Audit</small>
+    <small>SKU-level Performance Audit</small>
   </div>
 </header>
 
@@ -37,21 +37,25 @@
     <ul id="criticalIssues"></ul>
   </section>
 
-  <!-- FSN PERFORMANCE -->
+  <!-- SKU PERFORMANCE -->
   <section class="card">
-    <h2>FSN / Product Performance</h2>
+    <h2>SKU / Product Performance</h2>
+
+    <button id="toggleSku" class="toggle-btn">Show all SKUs</button>
+
     <table>
       <thead>
         <tr>
-          <th>FSN</th>
+          <th>SKU</th>
           <th>Views</th>
           <th>Clicks</th>
+          <th>Ad Spend (₹)</th>
           <th>Revenue (₹)</th>
           <th>ROI</th>
           <th>Status</th>
         </tr>
       </thead>
-      <tbody id="fsnTable"></tbody>
+      <tbody id="skuTable"></tbody>
     </table>
   </section>
 
